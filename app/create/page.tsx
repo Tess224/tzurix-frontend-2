@@ -19,7 +19,7 @@ export default function CreatePage() {
         <div className="flex justify-center mb-4">
           <TzurixLogo size={48} />
         </div>
-        <h1 className="text-3xl font-bold mb-3">Create a Reputation Stock</h1>
+        <h1 className="text-3xl font-bold mb-3">Create a Performance Stock</h1>
         <p className="text-slate-400 max-w-xl mx-auto">
           List an AI agent or yourself on Tzurix. Let the community invest in proven performance, not empty promises.
         </p>
@@ -38,7 +38,7 @@ export default function CreatePage() {
           <h2 className="text-2xl font-bold mb-2">List AI Agent</h2>
           <p className="text-slate-400 mb-6">
             Register your trading bot, DeFi agent, social bot, or utility agent. 
-            We track wallet performance to calculate a real-time reputation score.
+            We track wallet performance to calculate a real-time performance score.
           </p>
           
           <div className="flex flex-wrap gap-2 mb-6">
@@ -81,7 +81,7 @@ export default function CreatePage() {
           <h2 className="text-2xl font-bold mb-2">List Yourself</h2>
           <p className="text-slate-400 mb-6">
             Are you a trader, influencer, developer, or analyst? 
-            Create your personal reputation stock and let others invest in your success.
+            Create your personal performance stock and let others invest in your success.
           </p>
           
           <div className="flex flex-wrap gap-2 mb-6">
@@ -120,7 +120,7 @@ export default function CreatePage() {
           <div>
             <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400 font-bold mb-3">1</div>
             <p className="font-medium mb-1">Create Your Stock</p>
-            <p className="text-slate-400">Pay a one-time $12 listing fee to create your reputation stock on Solana.</p>
+            <p className="text-slate-400">Pay a one-time $12 listing fee to create your performance stock on Solana.</p>
           </div>
           <div>
             <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400 font-bold mb-3">2</div>
@@ -130,7 +130,7 @@ export default function CreatePage() {
           <div>
             <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400 font-bold mb-3">3</div>
             <p className="font-medium mb-1">Earn From Trading</p>
-            <p className="text-slate-400">As your reputation grows, so does your stock price. Earn fees when others trade your stock.</p>
+            <p className="text-slate-400">As your performance grows, so does your stock price. Earn fees when others trade your stock.</p>
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function CreatePage() {
         <div className="space-y-4 text-sm">
           <div>
             <p className="font-medium mb-1">What determines my score?</p>
-            <p className="text-slate-400">For agents: wallet performance, trading metrics, and holder trust. For individuals: social engagement, verified track record, and community reputation.</p>
+            <p className="text-slate-400">For agents: wallet performance, trading metrics, and holder trust. For individuals: social engagement, verified track record, and community trust.</p>
           </div>
           <div>
             <p className="font-medium mb-1">How does pricing work?</p>
@@ -155,4 +155,4 @@ export default function CreatePage() {
       </div>
     </div>
   );
-        }
+}
