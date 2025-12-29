@@ -1,13 +1,27 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Users, Bot, User } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Bot, User, LucideIcon } from 'lucide-react';
 import { AGENT_TYPES, INDIVIDUAL_TYPES } from '@/lib/constants';
 import { AgentType, IndividualType, StockCategory } from '@/types';
 
 // TYPE BADGE
+interface TypeConfig {
+  label: string;
+  icon: LucideIcon;
+  color: string;
+  bg: string;
+  border: string;
+}
+
 export function TypeBadge({ type, category = 'agent' }: { type: AgentType | IndividualType; category?: StockCategory }) {
-  const types = category === 'agent' ? AGENT_TYPES : INDIVIDUAL_TYPES;
-  const config = types[type as keyof typeof types] || Object.values(types)[0];
+  let config: TypeConfig;
+  
+  if (category === 'agent') {
+    config = AGENT_TYPES[type as AgentType] || AGENT_TYPES.trading;
+  } else {
+    config = INDIVIDUAL_TYPES[type as IndividualType] || INDIVIDUAL_TYPES.trader;
+  }
+  
   const Icon = config.icon;
   
   return (
@@ -46,7 +60,7 @@ export function ScoreDisplay({ score, previousScore, wasCapped = false, size = '
 }
 
 // STAT CARD
-export function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: string | number; label: string }) {
+export function StatCard({ icon: Icon, value, label }: { icon: LucideIcon; value: string | number; label: string }) {
   return (
     <div className="glass-panel p-5 flex items-center gap-4 hover:border-cyan-500/30 transition-all">
       <div className="p-3 bg-cyan-500/10 rounded-xl text-cyan-400">
@@ -95,7 +109,7 @@ export function LoadingSpinner() {
 
 // EMPTY STATE
 export function EmptyState({ icon: Icon, title, description, actionLabel, actionHref }: { 
-  icon: React.ElementType; 
+  icon: LucideIcon; 
   title: string; 
   description: string; 
   actionLabel?: string; 
@@ -115,4 +129,4 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, action
       )}
     </div>
   );
-}
+          }
