@@ -18,7 +18,7 @@ export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/predictions', label: 'Predictions' },
-  { href: '/create/agent', label: 'Create' },
+  { href: '/create', label: 'Create' },
 ] as const;
 
 export const SORT_OPTIONS = [
