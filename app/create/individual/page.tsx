@@ -82,7 +82,7 @@ function Step1ConnectWallet({ onNext }: { onNext: () => void }) {
       
       <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
       <p className="text-slate-400 mb-8 max-w-md mx-auto">
-        Connect your Solana wallet to create your reputation stock. 
+        Connect your Solana wallet to create your performance stock. 
         This wallet will receive trading fees when others trade your stock.
       </p>
       
@@ -292,7 +292,7 @@ function Step3SocialVerification({
           <div className="text-sm">
             <p className="text-cyan-400 font-medium">Why verify?</p>
             <p className="text-slate-400 mt-1">
-              Verified accounts start with a higher reputation score and display a verified badge. 
+              Verified accounts start with a higher performance score and display a verified badge. 
               This builds trust with potential investors.
             </p>
           </div>
@@ -504,7 +504,7 @@ function Step5ReviewPay({
     <div>
       <h2 className="text-2xl font-bold mb-2">Review and Pay</h2>
       <p className="text-slate-400 mb-8">
-        Review your details and pay the listing fee to create your reputation stock.
+        Review your details and pay the listing fee to create your performance stock.
       </p>
       
       <div className="glass-panel p-6 mb-6">
@@ -605,9 +605,9 @@ function Step5ReviewPay({
 // STEP 6: SUCCESS
 // ============================================================================
 
-function Step6Success({ userName, odividualId }: { userName: string; odividualId: number }) {
+function Step6Success({ userName, individualId }: { userName: string; individualId: number }) {
   const [copied, setCopied] = useState(false);
-  const shareUrl = `https://tzurix.com/individual/${odividualId}`;
+  const shareUrl = `https://tzurix.com/individual/${individualId}`;
   
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -647,7 +647,7 @@ function Step6Success({ userName, odividualId }: { userName: string; odividualId
       
       <div className="flex justify-center gap-3 mb-8">
         <a
-          href={`https://twitter.com/intent/tweet?text=I just listed myself on @Tzurix! Now you can invest in my reputation. Check out my profile: ${shareUrl}`}
+          href={`https://twitter.com/intent/tweet?text=I just listed myself on @Tzurix! Now you can invest in my performance. Check out my profile: ${shareUrl}`}
           target="_blank"
           rel="noopener noreferrer"
           className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors text-sm font-medium inline-flex items-center gap-2"
@@ -658,7 +658,7 @@ function Step6Success({ userName, odividualId }: { userName: string; odividualId
       </div>
       
       <div className="flex flex-col sm:flex-row justify-center gap-3">
-        <Link href={`/individual/${odividualId}`} className="btn-primary inline-flex items-center justify-center gap-2">
+        <Link href={`/individual/${individualId}`} className="btn-primary inline-flex items-center justify-center gap-2">
           View Your Profile
           <ArrowRight size={18} />
         </Link>
@@ -735,7 +735,7 @@ export default function CreateIndividualPage() {
           <TzurixLogo size={48} />
         </div>
         <h1 className="text-3xl font-bold">List Yourself</h1>
-        <p className="text-slate-400 mt-2">Create your reputation stock</p>
+        <p className="text-slate-400 mt-2">Create your performance stock</p>
       </div>
       
       {currentStep < 6 && (
@@ -787,7 +787,7 @@ export default function CreateIndividualPage() {
         {currentStep === 6 && (
           <Step6Success
             userName={userData.name}
-            odividualId={createdId}
+            individualId={createdId}
           />
         )}
       </div>
