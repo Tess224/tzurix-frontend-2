@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
           
           <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight leading-tight">
-            Trade reputation,<br />
+            Trade performance,<br />
             <span className="text-gradient">not promises</span>
           </h1>
           

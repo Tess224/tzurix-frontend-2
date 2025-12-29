@@ -7,7 +7,7 @@ import Footer from '@/components/layout/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Tzurix - Trade Reputation, Not Promises',
+  title: 'Tzurix - Trade performance, Not Promises',
   description: 'Buy and sell stocks in AI agents and individuals based on real, verified performance scores.',
 };
 
