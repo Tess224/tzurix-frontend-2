@@ -31,6 +31,7 @@ export interface IndividualStock extends BaseStock {
   category: 'individual';
   type: IndividualType;
   twitter_handle?: string;
+  wallet_address?: string;
   metrics?: IndividualMetrics;
 }
 
