@@ -279,7 +279,6 @@ function Step3RegisterWallets({
   const [error, setError] = useState('');
   
   const validateSolanaAddress = (address: string) => {
-    // Basic Solana address validation (base58, 32-44 chars)
     return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
   };
   
@@ -323,7 +322,7 @@ function Step3RegisterWallets({
       <h2 className="text-2xl font-bold mb-2">Register Agent Wallets</h2>
       <p className="text-slate-400 mb-8">
         Add the wallet addresses that your agent uses for trading. 
-        These wallets will be tracked to calculate your agent's performance score.
+        These wallets will be tracked to calculate your agent&apos;s performance score.
       </p>
       
       {/* Info Box */}
@@ -333,8 +332,8 @@ function Step3RegisterWallets({
           <div className="text-sm">
             <p className="text-cyan-400 font-medium">Why register wallets?</p>
             <p className="text-slate-400 mt-1">
-              We track your agent's wallets to calculate real performance metrics like P&L, 
-              win rate, and trading activity. This data determines your agent's score.
+              We track your agent&apos;s wallets to calculate real performance metrics like P&amp;L, 
+              win rate, and trading activity. This data determines your agent&apos;s score.
             </p>
           </div>
         </div>
@@ -386,7 +385,7 @@ function Step3RegisterWallets({
                   <span className="font-mono text-sm truncate max-w-[300px]">{wallet}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  
+                  <a
                     href={`https://solscan.io/account/${wallet}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -440,7 +439,7 @@ function Step4SocialAccounts({
     <div>
       <h2 className="text-2xl font-bold mb-2">Social Accounts</h2>
       <p className="text-slate-400 mb-8">
-        Connect social accounts to increase your agent's credibility. This step is optional.
+        Connect social accounts to increase your agent&apos;s credibility. This step is optional.
       </p>
       
       {/* Twitter */}
@@ -558,7 +557,7 @@ function Step5Verification({
         <p className="text-sm text-cyan-400 font-medium mb-2">Benefits of Verification:</p>
         <ul className="text-sm text-slate-400 space-y-1">
           <li>• Higher starting reputation score</li>
-          <li>• Verified badge on your agent's profile</li>
+          <li>• Verified badge on your agent&apos;s profile</li>
           <li>• Increased trust from potential investors</li>
         </ul>
       </div>
@@ -601,7 +600,7 @@ function Step6ReviewPay({
   
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-2">Review & Pay</h2>
+      <h2 className="text-2xl font-bold mb-2">Review &amp; Pay</h2>
       <p className="text-slate-400 mb-8">
         Review your agent details and pay the listing fee to create your stock.
       </p>
@@ -686,7 +685,7 @@ function Step6ReviewPay({
             </>
           ) : (
             <>
-              Pay $12 & Create
+              Pay $12 &amp; Create
               <ArrowRight size={18} />
             </>
           )}
@@ -743,7 +742,7 @@ function Step7Success({ agentName, agentId }: { agentName: string; agentId: numb
       
       {/* Share Buttons */}
       <div className="flex justify-center gap-3 mb-8">
-        
+        <a
           href={`https://twitter.com/intent/tweet?text=I just listed my AI agent "${agentName}" on @Tzurix! Trade reputation, not promises. Check it out: ${shareUrl}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -772,11 +771,9 @@ function Step7Success({ agentName, agentId }: { agentName: string; agentId: numb
 // MAIN PAGE COMPONENT
 // ============================================================================
 export default function CreateAgentPage() {
-  // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Form data
   const [agentData, setAgentData] = useState({
     name: '',
     type: 'trading' as AgentType,
@@ -790,7 +787,6 @@ export default function CreateAgentPage() {
   });
   const [createdAgentId, setCreatedAgentId] = useState<number>(0);
   
-  // Handlers
   const handleAgentDataChange = (field: string, value: string) => {
     setAgentData(prev => ({ ...prev, [field]: value }));
   };
@@ -809,11 +805,7 @@ export default function CreateAgentPage() {
   
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate fake agent ID
     setCreatedAgentId(Math.floor(Math.random() * 1000) + 1);
     setIsSubmitting(false);
     setCurrentStep(7);
@@ -824,7 +816,6 @@ export default function CreateAgentPage() {
   
   return (
     <div className="max-w-2xl mx-auto px-6 py-10">
-      {/* Back to Home */}
       {currentStep < 7 && (
         <Link 
           href="/"
@@ -835,7 +826,6 @@ export default function CreateAgentPage() {
         </Link>
       )}
       
-      {/* Header */}
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
           <TzurixLogo size={48} />
@@ -843,12 +833,10 @@ export default function CreateAgentPage() {
         <h1 className="text-3xl font-bold">List AI Agent</h1>
       </div>
       
-      {/* Step Indicator */}
       {currentStep < 7 && (
         <StepIndicator currentStep={currentStep} totalSteps={6} />
       )}
       
-      {/* Step Content */}
       <div className="glass-panel p-8">
         {currentStep === 1 && (
           <Step1ConnectWallet onNext={nextStep} />
@@ -909,4 +897,4 @@ export default function CreateAgentPage() {
       </div>
     </div>
   );
-      }
+            }
