@@ -9,6 +9,7 @@ import {
   Plus, ArrowRight
 } from 'lucide-react';
 import { TypeBadge, Avatar, LoadingSpinner } from '@/components/ui';
+import { AgentType, IndividualType } from '@/types';
 import { formatPrice, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
 
 // ============================================================================
@@ -19,7 +20,7 @@ interface Holding {
   id: number;
   name: string;
   category: 'agent' | 'individual';
-  type: string;
+  type: AgentType | IndividualType;
   tokens: number;
   avgBuyPrice: number;
   currentScore: number;
