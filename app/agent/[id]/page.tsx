@@ -6,13 +6,14 @@ import Link from 'next/link';
 import {
   ArrowLeft, ExternalLink, Copy, Check, TrendingUp, TrendingDown,
   Users, BarChart3, Clock, Calendar, Wallet, Activity,
-  Target, Percent, DollarSign, AlertTriangle, ChevronDown, ChevronUp, Info
+  Target, Percent, DollarSign, AlertTriangle, ChevronDown, ChevronUp, Info,
+  RefreshCw, Zap
 } from 'lucide-react';
 import {
   LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { TypeBadge, ScoreDisplay, Avatar, LoadingSpinner } from '@/components/ui';
-import { getAgent, formatPrice, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
+import { getAgent, getWalletScore, formatPrice, shortenAddress, formatNumber, formatPercent, WalletMetrics } from '@/lib/api';
 import TradeWidget from '@/components/TradeWidget';
 import { AGENT_TYPES, TIME_RANGES, EXTERNAL_LINKS } from '@/lib/constants';
 import { AgentStock, AgentMetrics, DailyScore } from '@/types';
@@ -60,69 +61,223 @@ function ScoreChart({ history }: { history: DailyScore[] }) {
   );
 }
 
-// AGENT METRICS
-function AgentMetricsDisplay({ type, metrics }: { type: string; metrics?: AgentMetrics }) {
-  const defaultMetrics: Record<string, { label: string; value: string; icon: React.ElementType }[]> = {
-    trading: [
-      { label: 'P&L (24h)', value: metrics?.pnl_24h ? `${formatPercent(metrics.pnl_24h)}` : '+4.69 SOL', icon: DollarSign },
-      { label: 'Win Rate', value: metrics?.win_rate ? `${metrics.win_rate.toFixed(1)}%` : '71.4%', icon: Target },
-      { label: 'Total Trades', value: metrics?.total_trades?.toString() || '80', icon: Activity },
-      { label: 'Max Drawdown', value: metrics?.max_drawdown ? `${metrics.max_drawdown.toFixed(1)}%` : '-12.3%', icon: AlertTriangle },
-    ],
-    social: [
-      { label: 'Followers', value: metrics?.followers ? formatNumber(metrics.followers) : '12.5K', icon: Users },
-      { label: 'Engagement', value: metrics?.engagement_rate ? `${metrics.engagement_rate.toFixed(1)}%` : '4.2%', icon: Target },
-      { label: 'Posts (24h)', value: metrics?.posts_24h?.toString() || '8', icon: Activity },
-      { label: 'Avg Likes', value: metrics?.avg_likes ? formatNumber(metrics.avg_likes) : '342', icon: TrendingUp },
-    ],
-    defi: [
-      { label: 'TVL', value: metrics?.tvl ? `$${formatNumber(metrics.tvl)}` : '$125K', icon: DollarSign },
-      { label: 'Current APY', value: metrics?.current_apy ? `${metrics.current_apy.toFixed(1)}%` : '24.5%', icon: Percent },
-      { label: 'Protocols', value: metrics?.protocols_used?.toString() || '5', icon: Activity },
-      { label: 'Total Yield', value: metrics?.total_yield ? `$${formatNumber(metrics.total_yield)}` : '$8.2K', icon: TrendingUp },
-    ],
-    utility: [
-      { label: 'Tasks Done', value: metrics?.tasks_completed ? formatNumber(metrics.tasks_completed) : '1,234', icon: Target },
-      { label: 'Avg Response', value: metrics?.avg_response_time ? `${metrics.avg_response_time}s` : '0.8s', icon: Clock },
-      { label: 'User Rating', value: metrics?.user_rating ? `${metrics.user_rating.toFixed(1)}/5` : '4.7/5', icon: Activity },
-      { label: 'Active Users', value: metrics?.active_users ? formatNumber(metrics.active_users) : '89', icon: Users },
-    ],
-  };
+// REAL METRICS DISPLAY (from Helius)
+function RealMetricsDisplay({ 
+  metrics, 
+  loading, 
+  usingRealData,
+  onRefresh 
+}: { 
+  metrics: WalletMetrics | null; 
+  loading: boolean;
+  usingRealData: boolean;
+  onRefresh: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white/5 rounded-xl p-4 animate-pulse">
+            <div className="h-4 bg-white/10 rounded w-20 mb-2" />
+            <div className="h-6 bg-white/10 rounded w-16" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   
-  const metricsToShow = defaultMetrics[type] || defaultMetrics.trading;
+  if (!metrics) {
+    return (
+      <div className="bg-white/5 rounded-xl p-6 text-center">
+        <AlertTriangle className="mx-auto text-amber-400 mb-2" size={24} />
+        <p className="text-slate-400 text-sm">Unable to load metrics</p>
+        <button onClick={onRefresh} className="mt-2 text-cyan-400 text-sm hover:underline">
+          Try again
+        </button>
+      </div>
+    );
+  }
+  
+  const pnlIsPositive = metrics.total_pnl_sol >= 0;
+  
+  const metricsData = [
+    { 
+      label: 'Total P&L', 
+      value: `${pnlIsPositive ? '+' : ''}${metrics.total_pnl_sol.toFixed(2)} SOL`, 
+      icon: DollarSign,
+      color: pnlIsPositive ? 'text-emerald-400' : 'text-red-400'
+    },
+    { 
+      label: 'Win Rate', 
+      value: `${metrics.win_rate.toFixed(1)}%`, 
+      icon: Target,
+      color: metrics.win_rate >= 50 ? 'text-emerald-400' : 'text-red-400'
+    },
+    { 
+      label: 'Total Trades', 
+      value: metrics.total_trades.toString(), 
+      icon: Activity,
+      color: 'text-white'
+    },
+    { 
+      label: 'Volume', 
+      value: `${metrics.total_volume_sol.toFixed(1)} SOL`, 
+      icon: BarChart3,
+      color: 'text-white'
+    },
+    { 
+      label: 'Avg Trade P&L', 
+      value: `${metrics.avg_trade_pnl >= 0 ? '+' : ''}${metrics.avg_trade_pnl.toFixed(3)} SOL`, 
+      icon: TrendingUp,
+      color: metrics.avg_trade_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
+    },
+    { 
+      label: 'Avg Hold Time', 
+      value: `${metrics.avg_hold_time_hours.toFixed(1)}h`, 
+      icon: Clock,
+      color: 'text-white'
+    },
+    { 
+      label: 'Trades/Day', 
+      value: metrics.trades_per_day.toFixed(1), 
+      icon: Zap,
+      color: 'text-white'
+    },
+    { 
+      label: 'Tokens Traded', 
+      value: metrics.unique_tokens_traded.toString(), 
+      icon: Activity,
+      color: 'text-white'
+    },
+  ];
   
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {metricsToShow.map((metric, i) => {
-        const Icon = metric.icon;
-        return (
-          <div key={i} className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon size={14} className="text-slate-500" />
-              <span className="text-xs text-slate-500">{metric.label}</span>
+    <div>
+      {/* Data Source Badge */}
+      <div className="flex items-center justify-between mb-4">
+        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${
+          usingRealData 
+            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' 
+            : 'bg-amber-500/20 border border-amber-500/30 text-amber-400'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${usingRealData ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+          {usingRealData ? 'Live On-Chain Data' : 'Simulated Data'}
+        </div>
+        <button 
+          onClick={onRefresh}
+          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+          title="Refresh metrics"
+        >
+          <RefreshCw size={16} />
+        </button>
+      </div>
+      
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {metricsData.map((metric, i) => {
+          const Icon = metric.icon;
+          return (
+            <div key={i} className="bg-white/5 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon size={14} className="text-slate-500" />
+                <span className="text-xs text-slate-500">{metric.label}</span>
+              </div>
+              <p className={`font-mono text-lg font-semibold ${metric.color}`}>{metric.value}</p>
             </div>
-            <p className="font-mono text-lg font-semibold">{metric.value}</p>
+          );
+        })}
+      </div>
+      
+      {/* Additional Stats */}
+      <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="bg-white/5 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-slate-500">Largest Win</span>
+            <TrendingUp size={14} className="text-emerald-400" />
           </div>
-        );
-      })}
+          <p className="font-mono text-lg font-semibold text-emerald-400">
+            +{metrics.largest_win_sol.toFixed(2)} SOL
+          </p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-slate-500">Largest Loss</span>
+            <TrendingDown size={14} className="text-red-400" />
+          </div>
+          <p className="font-mono text-lg font-semibold text-red-400">
+            {metrics.largest_loss_sol.toFixed(2)} SOL
+          </p>
+        </div>
+      </div>
+      
+      {/* Win/Loss Bar */}
+      <div className="mt-4 bg-white/5 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2 text-sm">
+          <span className="text-emerald-400">{metrics.winning_trades} Wins</span>
+          <span className="text-slate-500">
+            {metrics.total_trades > 0 
+              ? `${((metrics.winning_trades / metrics.total_trades) * 100).toFixed(0)}%` 
+              : '0%'}
+          </span>
+          <span className="text-red-400">{metrics.losing_trades} Losses</span>
+        </div>
+        <div className="flex h-2 rounded-full overflow-hidden bg-white/10">
+          <div 
+            className="bg-emerald-500 transition-all" 
+            style={{ width: metrics.total_trades > 0 ? `${(metrics.winning_trades / metrics.total_trades) * 100}%` : '0%' }} 
+          />
+          <div 
+            className="bg-red-500 transition-all" 
+            style={{ width: metrics.total_trades > 0 ? `${(metrics.losing_trades / metrics.total_trades) * 100}%` : '0%' }} 
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
 // SCORE BREAKDOWN
-function ScoreBreakdown() {
+function ScoreBreakdown({ metrics }: { metrics: WalletMetrics | null }) {
   const [expanded, setExpanded] = useState(false);
   
+  // Calculate breakdown from real metrics if available
+  const performanceValue = metrics ? Math.min(100, Math.max(0, 50 + metrics.total_pnl_sol * 2 + metrics.win_rate * 0.3)) : 85;
+  const reliabilityValue = metrics ? Math.min(100, Math.max(0, metrics.total_trades > 10 ? 70 + (metrics.win_rate - 50) * 0.4 : 50)) : 72;
+  const reputationValue = 60; // This would come from holder data
+  
   const breakdown = [
-    { name: 'Performance', weight: '50%', value: 85, points: 4.25, description: 'Based on P&L, win rate, and trading consistency' },
-    { name: 'Reliability', weight: '30%', value: 72, points: 2.16, description: 'Based on uptime, transaction success rate' },
-    { name: 'Reputation', weight: '20%', value: 60, points: 1.2, description: 'Based on holder count, creator credibility' },
+    { 
+      name: 'Performance', 
+      weight: '50%', 
+      value: Math.round(performanceValue), 
+      points: (performanceValue / 100) * 5, 
+      description: 'Based on P&L, win rate, and trading consistency' 
+    },
+    { 
+      name: 'Reliability', 
+      weight: '30%', 
+      value: Math.round(reliabilityValue), 
+      points: (reliabilityValue / 100) * 3, 
+      description: 'Based on trade count, consistency, and activity' 
+    },
+    { 
+      name: 'Reputation', 
+      weight: '20%', 
+      value: reputationValue, 
+      points: (reputationValue / 100) * 2, 
+      description: 'Based on holder count, creator credibility' 
+    },
   ];
+  
+  const totalPoints = breakdown.reduce((sum, b) => sum + b.points, 0);
   
   return (
     <div className="glass-panel p-6">
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
-        <h3 className="font-semibold">Score Breakdown</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold">Score Breakdown</h3>
+          <span className="text-sm text-cyan-400 font-mono">{totalPoints.toFixed(1)} / 10</span>
+        </div>
         {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
       </button>
       
@@ -207,6 +362,11 @@ export default function AgentPage() {
   const [timeRange, setTimeRange] = useState(7);
   const [scoreHistory] = useState<DailyScore[]>([]);
   
+  // Real metrics state
+  const [walletMetrics, setWalletMetrics] = useState<WalletMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [usingRealData, setUsingRealData] = useState(false);
+  
   useEffect(() => {
     fetchAgent();
   }, [agentId]);
@@ -217,9 +377,11 @@ export default function AgentPage() {
       const data = await getAgent(agentId);
       if (data) {
         setAgent(data);
+        // Fetch real metrics after getting agent
+        fetchMetrics(data.wallet_address);
       } else {
-        // Mock data
-        setAgent({
+        // Mock data for development
+        const mockAgent: AgentStock = {
           id: parseInt(agentId),
           name: 'Alpha Trading Bot',
           type: 'trading',
@@ -236,13 +398,35 @@ export default function AgentPage() {
           created_at: '2024-12-20',
           creator_wallet: 'DCAKxn5PFNN1mBREPWGdk1RXg5aVH9rPErLfBFEi2Cj6',
           description: 'High-frequency trading bot specializing in Solana memecoins with advanced momentum detection.',
-          metrics: { pnl_24h: 4.69, win_rate: 71.4, total_trades: 80, max_drawdown: -12.3 }
-        } as AgentStock);
+        };
+        setAgent(mockAgent);
+        fetchMetrics(mockAgent.wallet_address);
       }
     } catch (error) {
       console.error('Error fetching agent:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchMetrics = async (walletAddress: string) => {
+    try {
+      setMetricsLoading(true);
+      const scoreData = await getWalletScore(walletAddress);
+      if (scoreData && scoreData.metrics) {
+        setWalletMetrics(scoreData.metrics);
+        setUsingRealData(scoreData.using_real_data);
+      }
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+  
+  const handleRefreshMetrics = () => {
+    if (agent) {
+      fetchMetrics(agent.wallet_address);
     }
   };
   
@@ -363,17 +547,22 @@ export default function AgentPage() {
             </div>
           </div>
           
-          {/* Agent Metrics */}
+          {/* Real Metrics from Helius */}
           <div className="glass-panel p-6">
-            <h3 className="font-semibold mb-4">{typeConfig?.label || 'Trading'} Metrics</h3>
-            <AgentMetricsDisplay type={agent.type} metrics={agent.metrics} />
+            <h3 className="font-semibold mb-4">On-Chain Trading Metrics</h3>
+            <RealMetricsDisplay 
+              metrics={walletMetrics} 
+              loading={metricsLoading}
+              usingRealData={usingRealData}
+              onRefresh={handleRefreshMetrics}
+            />
           </div>
           
           {/* Tracked Wallets */}
           <TrackedWallets wallets={agent.agent_wallets} mainWallet={agent.wallet_address} />
           
           {/* Score Breakdown */}
-          <ScoreBreakdown />
+          <ScoreBreakdown metrics={walletMetrics} />
         </div>
         
         {/* Sidebar */}
@@ -392,4 +581,4 @@ export default function AgentPage() {
       </div>
     </div>
   );
-      }
+}
