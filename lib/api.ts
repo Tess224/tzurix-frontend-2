@@ -252,4 +252,4 @@ export function shortenAddress(address: string, chars: number = 4): string {
 export function formatSOL(lamports: number): string {
   const sol = lamports / 1_000_000_000;
   return `${sol.toFixed(4)} SOL`;
-}
+} 
