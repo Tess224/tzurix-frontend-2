@@ -109,6 +109,33 @@ export const INDIVIDUAL_TYPES = {
 };
 
 // =============================================================================
+// TIME RANGES (for charts)
+// =============================================================================
+
+export const TIME_RANGES = [
+  { label: '24H', value: '24h', days: 1 },
+  { label: '7D', value: '7d', days: 7 },
+  { label: '30D', value: '30d', days: 30 },
+  { label: '90D', value: '90d', days: 90 },
+  { label: 'ALL', value: 'all', days: 365 },
+];
+
+// =============================================================================
+// EXTERNAL LINKS
+// =============================================================================
+
+export const EXTERNAL_LINKS = {
+  solscan: 'https://solscan.io',
+  solscanAddress: (address: string) => `https://solscan.io/account/${address}?cluster=devnet`,
+  solscanToken: (mint: string) => `https://solscan.io/token/${mint}?cluster=devnet`,
+  solscanTx: (signature: string) => `https://solscan.io/tx/${signature}?cluster=devnet`,
+  twitter: 'https://twitter.com/tzurix',
+  discord: 'https://discord.gg/tzurix',
+  docs: 'https://docs.tzurix.com',
+  github: 'https://github.com/tzurix',
+};
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
