@@ -35,6 +35,41 @@ export async function getAgent(id: string): Promise<AgentStock | null> {
   return response.data?.agent || null;
 }
 
+export interface CreateAgentParams {
+  wallet_address: string;
+  name: string;
+  description?: string;
+  creator_wallet: string;
+}
+
+export interface CreateAgentResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  agent?: AgentStock;
+}
+
+/**
+ * Register a new AI trading agent
+ */
+export async function createAgent(params: CreateAgentParams): Promise<CreateAgentResult> {
+  const response = await fetchApi<CreateAgentResult>('/api/agents', {
+    method: 'POST',
+    body: JSON.stringify({
+      wallet_address: params.wallet_address,
+      name: params.name,
+      description: params.description || '',
+      creator_wallet: params.creator_wallet,
+    }),
+  });
+  
+  if (!response.success || !response.data) {
+    return { success: false, error: response.error || 'Failed to create agent' };
+  }
+  
+  return response.data;
+}
+
 // =============================================================================
 // INDIVIDUAL APIs
 // =============================================================================
@@ -48,6 +83,8 @@ export async function getIndividual(id: string): Promise<IndividualStock | null>
   const response = await fetchApi<{ individual: IndividualStock }>(`/api/individuals/${id}`);
   return response.data?.individual || null;
 }
+
+// Note: createIndividual not implemented yet - backend needs Individual model first
 
 // =============================================================================
 // TRADING APIs
@@ -163,7 +200,7 @@ export async function sellTokens(params: {
 export interface UserHolding {
   id: number;
   agent_id: number;
-  stock_name: string;
+  agent_name: string;
   token_amount: number;
   avg_buy_price_sol: number;
   current_price_sol: number;
