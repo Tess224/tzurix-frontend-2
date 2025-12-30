@@ -1,24 +1,10 @@
 // lib/constants.ts
 // Tzurix Core Constants
 
-import { 
-  LineChart, MessageCircle, Landmark, Wrench,
-  Code, BarChart3, User, Bot
-} from 'lucide-react';
+import { LineChart, MessageCircle, Landmark, Wrench, Megaphone, Code, PieChart } from 'lucide-react';
 
 // =============================================================================
-// NAVIGATION
-// =============================================================================
-
-export const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/portfolio', label: 'Portfolio' },
-  { href: '/predictions', label: 'Predictions' },
-  { href: '/create', label: 'Create' },
-];
-
-// =============================================================================
-// SCORING & PRICING
+// SCORING & PRICING (NEW)
 // =============================================================================
 
 // Daily score change cap (±35%)
@@ -47,95 +33,61 @@ export const CREATOR_FEE_PERCENT = 0.5; // 0.5%
 // =============================================================================
 
 export const AGENT_TYPES = {
-  trading: {
-    label: 'Trading',
-    icon: LineChart,
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/30',
-  },
-  social: {
-    label: 'Social',
-    icon: MessageCircle,
-    color: 'text-violet-400',
-    bg: 'bg-violet-500/10',
-    border: 'border-violet-500/30',
-  },
-  defi: {
-    label: 'DeFi',
-    icon: Landmark,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-  },
-  utility: {
-    label: 'Utility',
-    icon: Wrench,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
-  },
-};
+  trading: { label: 'Trading', icon: LineChart, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  social: { label: 'Social', icon: MessageCircle, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+  defi: { label: 'DeFi', icon: Landmark, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+  utility: { label: 'Utility', icon: Wrench, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+} as const;
 
 export const INDIVIDUAL_TYPES = {
-  trader: {
-    label: 'Trader',
-    icon: LineChart,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-  },
-  influencer: {
-    label: 'Influencer',
-    icon: MessageCircle,
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/10',
-    border: 'border-pink-500/30',
-  },
-  developer: {
-    label: 'Developer',
-    icon: Code,
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/30',
-  },
-  analyst: {
-    label: 'Analyst',
-    icon: BarChart3,
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/30',
-  },
-};
+  trader: { label: 'Trader', icon: LineChart, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  influencer: { label: 'Influencer', icon: Megaphone, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/30' },
+  developer: { label: 'Developer', icon: Code, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' },
+  analyst: { label: 'Analyst', icon: PieChart, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+} as const;
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+
+export const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/predictions', label: 'Predictions' },
+  { href: '/create', label: 'Create' },
+] as const;
+
+// =============================================================================
+// SORT & FILTER OPTIONS
+// =============================================================================
+
+export const SORT_OPTIONS = [
+  { value: 'score', label: 'Sort by Score' },
+  { value: 'volume', label: 'Sort by Volume' },
+  { value: 'holders', label: 'Sort by Holders' },
+  { value: 'newest', label: 'Sort by Newest' },
+] as const;
 
 // =============================================================================
 // TIME RANGES (for charts)
 // =============================================================================
 
 export const TIME_RANGES = [
-  { label: '24H', value: '24h', days: 1 },
-  { label: '7D', value: '7d', days: 7 },
-  { label: '30D', value: '30d', days: 30 },
-  { label: '90D', value: '90d', days: 90 },
-  { label: 'ALL', value: 'all', days: 365 },
-];
+  { value: 7, label: '7d' },
+  { value: 30, label: '30d' },
+  { value: 90, label: '90d' },
+] as const;
 
 // =============================================================================
 // EXTERNAL LINKS
 // =============================================================================
 
 export const EXTERNAL_LINKS = {
-  solscan: (address: string) => `https://solscan.io/account/${address}?cluster=devnet`,
-  solscanToken: (mint: string) => `https://solscan.io/token/${mint}?cluster=devnet`,
-  solscanTx: (signature: string) => `https://solscan.io/tx/${signature}?cluster=devnet`,
-  twitter: 'https://twitter.com/tzurix',
-  discord: 'https://discord.gg/tzurix',
-  docs: 'https://docs.tzurix.com',
-  github: 'https://github.com/tzurix',
-};
+  solscan: (address: string) => `https://solscan.io/account/${address}`,
+} as const;
 
 // =============================================================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (NEW)
 // =============================================================================
 
 /**
