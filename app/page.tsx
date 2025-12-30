@@ -1,285 +1,410 @@
+// app/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Bot, User, ArrowUpRight, BarChart3, Coins, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { 
+  TrendingUp, TrendingDown, Search, Filter,
+  Bot, User, ArrowRight, Zap, Shield, BarChart3,
+  Info
+} from 'lucide-react';
 import TzurixLogo from '@/components/ui/TzurixLogo';
-import { StatCard, MiniChart, EmptyState } from '@/components/ui';
-import StockCard from '@/components/stock/StockCard';
-import { AGENT_TYPES, INDIVIDUAL_TYPES, SORT_OPTIONS } from '@/lib/constants';
-import { getAgents, formatNumber } from '@/lib/api';
-import { AgentStock, IndividualStock } from '@/types';
+import PriceDisplay, { InlinePrice, PriceChange, MarketCap } from '@/components/ui/PriceDisplay';
+import { AGENT_TYPES, INDIVIDUAL_TYPES, DAILY_SCORE_CAP } from '@/lib/constants';
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'agents' | 'individuals'>('agents');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('score');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [agents, setAgents] = useState<AgentStock[]>([]);
-  const [individuals, setIndividuals] = useState<IndividualStock[]>([]);
-  const [loading, setLoading] = useState(true);
+// =============================================================================
+// MOCK DATA (Replace with API calls)
+// =============================================================================
 
-  const agentFilters = Object.entries(AGENT_TYPES).map(([value, config]) => ({
-    value,
-    label: config.label,
-    icon: config.icon,
-  }));
+const MOCK_AGENTS = [
+  { id: 1, name: 'AlphaBot', type: 'trading', score: 87, previousScore: 82, category: 'agent' },
+  { id: 2, name: 'YieldMax', type: 'defi', score: 72, previousScore: 75, category: 'agent' },
+  { id: 3, name: 'SocialPulse', type: 'social', score: 65, previousScore: 58, category: 'agent' },
+  { id: 4, name: 'DataMiner', type: 'utility', score: 54, previousScore: 54, category: 'agent' },
+];
 
-  const individualFilters = Object.entries(INDIVIDUAL_TYPES).map(([value, config]) => ({
-    value,
-    label: config.label,
-    icon: config.icon,
-  }));
+const MOCK_INDIVIDUALS = [
+  { id: 1, name: 'CryptoWhale', type: 'trader', score: 91, previousScore: 88, category: 'individual' },
+  { id: 2, name: 'DeFi_Sarah', type: 'influencer', score: 78, previousScore: 72, category: 'individual' },
+  { id: 3, name: '0xBuilder', type: 'developer', score: 69, previousScore: 71, category: 'individual' },
+  { id: 4, name: 'ChartMaster', type: 'analyst', score: 63, previousScore: 60, category: 'individual' },
+];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+// =============================================================================
+// STOCK CARD COMPONENT
+// =============================================================================
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const agentData = await getAgents();
-      if (agentData.length > 0) {
-        setAgents(agentData);
-      } else {
-        // Mock data for demo
-        setAgents([
-          { id: 1, name: 'Alpha Trading Bot', type: 'trading', current_score: 11, previous_score: 10, holders: 24, volume_24h: 1250, category: 'agent', wallet_address: '7jDV...' },
-          { id: 2, name: 'Momentum Hunter', type: 'trading', current_score: 14, previous_score: 12, holders: 18, volume_24h: 890, category: 'agent', wallet_address: 'DCAk...' },
-          { id: 3, name: 'DeFi Yield Max', type: 'defi', current_score: 8, previous_score: 10, holders: 31, volume_24h: 2100, category: 'agent', wallet_address: '9WzD...' },
-          { id: 4, name: 'Social Signal AI', type: 'social', current_score: 12, previous_score: 11, holders: 15, volume_24h: 560, category: 'agent', wallet_address: 'Abc1...' },
-          { id: 5, name: 'Task Automator', type: 'utility', current_score: 9, previous_score: 9, holders: 8, volume_24h: 320, category: 'agent', wallet_address: 'Xyz2...' },
-          { id: 6, name: 'Sniper Bot Pro', type: 'trading', current_score: 16, previous_score: 14, holders: 42, volume_24h: 3400, category: 'agent', wallet_address: 'Qwe3...' },
-        ] as AgentStock[]);
-      }
+interface StockCardProps {
+  id: number;
+  name: string;
+  type: string;
+  score: number;
+  previousScore: number;
+  category: 'agent' | 'individual';
+}
+
+function StockCard({ id, name, type, score, previousScore, category }: StockCardProps) {
+  const typeConfig = category === 'agent' 
+    ? AGENT_TYPES[type as keyof typeof AGENT_TYPES]
+    : INDIVIDUAL_TYPES[type as keyof typeof INDIVIDUAL_TYPES];
+  
+  const TypeIcon = typeConfig?.icon || Bot;
+  const isPositive = score >= previousScore;
+  const changePercent = previousScore > 0 
+    ? ((score - previousScore) / previousScore) * 100 
+    : 0;
+
+  const linkPath = category === 'agent' ? `/agent/${id}` : `/individual/${id}`;
+
+  return (
+    <Link 
+      href={linkPath}
+      className="glass-panel p-5 hover:border-cyan-500/30 transition-all group"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${typeConfig?.bg} border ${typeConfig?.border}`}>
+            {category === 'agent' ? (
+              <Bot size={20} className={typeConfig?.color} />
+            ) : (
+              <User size={20} className={typeConfig?.color} />
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold group-hover:text-cyan-400 transition-colors">{name}</h3>
+            <div className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${typeConfig?.bg} ${typeConfig?.border} border ${typeConfig?.color}`}>
+              <TypeIcon size={10} />
+              {typeConfig?.label}
+            </div>
+          </div>
+        </div>
+        <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+          {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          {isPositive ? '+' : ''}{changePercent.toFixed(1)}%
+        </div>
+      </div>
       
-      setIndividuals([
-        { id: 1, name: 'CryptoWhale', type: 'trader', current_score: 85, previous_score: 80, holders: 156, volume_24h: 12500, category: 'individual' },
-        { id: 2, name: 'DeFi_Master', type: 'analyst', current_score: 72, previous_score: 70, holders: 89, volume_24h: 5600, category: 'individual' },
-        { id: 3, name: 'SolanaKing', type: 'influencer', current_score: 64, previous_score: 68, holders: 234, volume_24h: 8900, category: 'individual' },
-      ] as IndividualStock[]);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs text-slate-500 mb-1">Price</p>
+          <PriceDisplay score={score} size="md" showLabel={true} />
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-500 mb-1">Score</p>
+          <p className="text-2xl font-bold text-cyan-400">{score}</p>
+        </div>
+      </div>
+      
+      <div className="mt-3 pt-3 border-t border-white/5">
+        <MarketCap score={score} size="sm" />
+      </div>
+    </Link>
+  );
+}
 
-  const currentData = activeTab === 'agents' ? agents : individuals;
-  const currentFilters = activeTab === 'agents' ? agentFilters : individualFilters;
+// =============================================================================
+// LEADERBOARD ROW COMPONENT
+// =============================================================================
 
-  const filteredData = currentData
-    .filter(item => {
-      const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = activeFilter === 'all' || item.type === activeFilter;
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'score': return b.current_score - a.current_score;
-        case 'volume': return (b.volume_24h || 0) - (a.volume_24h || 0);
-        case 'holders': return (b.holders || 0) - (a.holders || 0);
-        case 'newest': return b.id - a.id;
-        default: return 0;
-      }
-    });
+interface LeaderboardRowProps {
+  rank: number;
+  name: string;
+  type: string;
+  score: number;
+  previousScore: number;
+  category: 'agent' | 'individual';
+}
 
-  const totalStocks = agents.length + individuals.length;
-  const totalVolume = [...agents, ...individuals].reduce((sum, s) => sum + (s.volume_24h || 0), 0);
-  const avgScore = currentData.length > 0
-    ? Math.round(currentData.reduce((sum, s) => sum + (s.current_score || 0), 0) / currentData.length)
+function LeaderboardRow({ rank, name, type, score, previousScore, category }: LeaderboardRowProps) {
+  const typeConfig = category === 'agent' 
+    ? AGENT_TYPES[type as keyof typeof AGENT_TYPES]
+    : INDIVIDUAL_TYPES[type as keyof typeof INDIVIDUAL_TYPES];
+  
+  const isPositive = score >= previousScore;
+  const changePercent = previousScore > 0 
+    ? ((score - previousScore) / previousScore) * 100 
     : 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+      <div className="flex items-center gap-4">
+        <span className={`w-6 text-center font-bold ${rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
+          {rank}
+        </span>
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${typeConfig?.bg}`}>
+            {category === 'agent' ? (
+              <Bot size={14} className={typeConfig?.color} />
+            ) : (
+              <User size={14} className={typeConfig?.color} />
+            )}
+          </div>
+          <span className="font-medium">{name}</span>
+        </div>
+      </div>
       
-      {/* HERO SECTION */}
-      <section className="text-center mb-16 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 blur-[150px] pointer-events-none" />
-        
-        <div className="relative">
-          <div className="flex justify-center mb-6">
-            <TzurixLogo size={100} />
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight leading-tight">
-            Trade performance,<br />
-            <span className="text-gradient">not promises</span>
-          </h1>
-          
-          <p className="text-slate-400 max-w-lg mx-auto mb-8 text-lg">
-            Buy and sell stocks in AI agents and individuals based on real, verified performance scores.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <button className="btn-primary flex items-center justify-center gap-2">
-              Get Early Access
-            </button>
-            <button className="btn-secondary flex items-center justify-center gap-2">
-              Explore Stocks
-              <ArrowUpRight size={18} />
-            </button>
-          </div>
+      <div className="flex items-center gap-6">
+        <InlinePrice score={score} />
+        <div className={`w-16 text-right text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+          {isPositive ? '+' : ''}{changePercent.toFixed(1)}%
         </div>
-      </section>
-
-      {/* STATS ROW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-        <StatCard icon={Coins} value={totalStocks.toLocaleString()} label="Total Stocks Listed" />
-        <StatCard icon={BarChart3} value={`$${formatNumber(totalVolume)}`} label="24h Volume" />
-        <StatCard icon={TrendingUp} value={avgScore} label={`Avg ${activeTab === 'agents' ? 'Agent' : 'Individual'} Score`} />
-      </div>
-
-      {/* MAIN TABS & FILTERS */}
-      <div className="glass-panel p-6 mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          {/* Main Tabs */}
-          <div className="flex bg-white/5 rounded-xl p-1">
-            <button
-              onClick={() => { setActiveTab('agents'); setActiveFilter('all'); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${
-                activeTab === 'agents' ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Bot size={18} />
-              AI Agents
-            </button>
-            <button
-              onClick={() => { setActiveTab('individuals'); setActiveFilter('all'); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${
-                activeTab === 'individuals' ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <User size={18} />
-              Individuals
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input 
-              className="input-field pl-10"
-              placeholder={`Search ${activeTab === 'agents' ? 'agents' : 'individuals'}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeFilter === 'all' ? 'bg-cyan-500 text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            All
-          </button>
-          {currentFilters.map((filter) => {
-            const Icon = filter.icon;
-            return (
-              <button
-                key={filter.value}
-                onClick={() => setActiveFilter(filter.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-                  activeFilter === filter.value ? 'bg-cyan-500 text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Icon size={14} />
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* STOCK GRID */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="animate-spin text-cyan-400" size={32} />
-        </div>
-      ) : filteredData.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredData.map((stock) => (
-            <StockCard key={stock.id} stock={stock} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={activeTab === 'agents' ? Bot : User}
-          title={`No ${activeTab} found`}
-          description={searchQuery ? `No results for "${searchQuery}"` : `Be the first to list a ${activeFilter !== 'all' ? activeFilter : ''} ${activeTab === 'agents' ? 'AI agent' : 'individual'}`}
-          actionLabel="Create Stock"
-          actionHref={`/create/${activeTab === 'agents' ? 'agent' : 'individual'}`}
-        />
-      )}
-
-      {/* BOTTOM WIDGETS */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Performers */}
-        <div className="glass-panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Top Performers</h3>
-            <TrendingUp className="text-emerald-400" size={18} />
-          </div>
-          <div className="space-y-3">
-            {[...agents, ...individuals]
-              .sort((a, b) => b.current_score - a.current_score)
-              .slice(0, 5)
-              .map((stock, i) => (
-                <div key={`${stock.id}-${stock.name}`} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 text-xs w-4">{i + 1}</span>
-                    <span className="text-sm font-medium truncate">{stock.name}</span>
-                  </div>
-                  <span className="font-mono text-cyan-400 text-sm">{stock.current_score}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Live Activity */}
-        <div className="glass-panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Live Activity</h3>
-            <div className="flex items-center gap-2 text-cyan-400">
-              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-xs">LIVE</span>
-            </div>
-          </div>
-          <div className="mb-4 bg-gradient-to-t from-cyan-500/5 to-transparent rounded-xl border border-white/5 overflow-hidden">
-            <MiniChart data={[40, 65, 45, 80, 55, 90, 70, 85, 60, 95]} />
-          </div>
-          <p className="text-xs text-slate-500 text-center">Score changes (24h)</p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="glass-panel p-5">
-          <h3 className="font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <a href="/create/agent" className="w-full py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-xl text-cyan-400 font-medium hover:from-cyan-500/30 hover:to-blue-500/30 transition-all flex items-center justify-center gap-2">
-              <Bot size={18} />
-              List AI Agent
-            </a>
-            <a href="/create/individual" className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-              <User size={18} />
-              List Individual
-            </a>
-          </div>
+        <div className="w-12 text-right">
+          <span className="text-cyan-400 font-bold">{score}</span>
         </div>
       </div>
     </div>
   );
-           }
+}
+
+// =============================================================================
+// MAIN PAGE COMPONENT
+// =============================================================================
+
+export default function HomePage() {
+  const [activeTab, setActiveTab] = useState<'agents' | 'individuals'>('agents');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const stocks = activeTab === 'agents' ? MOCK_AGENTS : MOCK_INDIVIDUALS;
+  const filteredStocks = stocks.filter(stock => 
+    stock.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Combine and sort for leaderboard
+  const allStocks = [...MOCK_AGENTS, ...MOCK_INDIVIDUALS]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative py-20 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent" />
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center mb-12">
+            <div className="flex justify-center mb-6">
+              <TzurixLogo size={64} />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Trade <span className="text-cyan-400">Performance</span>, Not Promises
+            </h1>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-8">
+              Buy and sell stocks in AI agents and individuals. Price equals performance score.
+              Real metrics, real accountability, real returns.
+            </p>
+            
+            {/* Price Explainer */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-slate-400 mb-8">
+              <Info size={14} className="text-cyan-400" />
+              <span>Prices shown are per 1,000 tokens</span>
+              <span className="text-slate-600">•</span>
+              <span>Score changes capped at ±{DAILY_SCORE_CAP * 100}% daily</span>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/create" className="btn-primary inline-flex items-center justify-center gap-2">
+                Create Your Stock
+                <ArrowRight size={18} />
+              </Link>
+              <Link href="#explore" className="btn-secondary inline-flex items-center justify-center gap-2">
+                Explore Stocks
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+            <div className="glass-panel p-4 text-center">
+              <p className="text-2xl font-bold text-cyan-400">$2.4M</p>
+              <p className="text-xs text-slate-500">Total Volume</p>
+            </div>
+            <div className="glass-panel p-4 text-center">
+              <p className="text-2xl font-bold text-cyan-400">847</p>
+              <p className="text-xs text-slate-500">Active Stocks</p>
+            </div>
+            <div className="glass-panel p-4 text-center">
+              <p className="text-2xl font-bold text-cyan-400">12.5K</p>
+              <p className="text-xs text-slate-500">Traders</p>
+            </div>
+            <div className="glass-panel p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-400">+34%</p>
+              <p className="text-xs text-slate-500">Avg. Returns</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-12">How It Works</h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="text-cyan-400" size={28} />
+              </div>
+              <h3 className="font-semibold mb-2">Score = Price</h3>
+              <p className="text-sm text-slate-400">
+                Every stock has a performance score from 0-100. 
+                Price is simply Score × $0.01 per 1,000 tokens.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="text-emerald-400" size={28} />
+              </div>
+              <h3 className="font-semibold mb-2">Daily Updates</h3>
+              <p className="text-sm text-slate-400">
+                Scores update daily based on real performance metrics.
+                Changes are capped at ±{DAILY_SCORE_CAP * 100}% per day.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Shield className="text-violet-400" size={28} />
+              </div>
+              <h3 className="font-semibold mb-2">Verified On-Chain</h3>
+              <p className="text-sm text-slate-400">
+                All scores are pushed to Solana by our oracle.
+                Transparent, verifiable, tamper-proof.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Explore Stocks */}
+      <section id="explore" className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <h2 className="text-2xl font-bold">Explore Stocks</h2>
+            
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search stocks..."
+                  className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-cyan-500/50 w-48"
+                />
+              </div>
+              
+              {/* Tabs */}
+              <div className="flex bg-white/5 rounded-xl p-1">
+                <button
+                  onClick={() => setActiveTab('agents')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'agents' 
+                      ? 'bg-cyan-500 text-black' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Bot size={14} className="inline mr-1.5" />
+                  Agents
+                </button>
+                <button
+                  onClick={() => setActiveTab('individuals')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'individuals' 
+                      ? 'bg-cyan-500 text-black' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <User size={14} className="inline mr-1.5" />
+                  Individuals
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Price Label Info */}
+          <div className="mb-6 text-xs text-slate-500 flex items-center gap-1">
+            <Info size={12} />
+            All prices shown are per 1,000 tokens
+          </div>
+
+          {/* Stock Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {filteredStocks.map((stock) => (
+              <StockCard
+                key={stock.id}
+                id={stock.id}
+                name={stock.name}
+                type={stock.type}
+                score={stock.score}
+                previousScore={stock.previousScore}
+                category={stock.category as 'agent' | 'individual'}
+              />
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link 
+              href={activeTab === 'agents' ? '/agents' : '/individuals'}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              View All {activeTab === 'agents' ? 'Agents' : 'Individuals'}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Leaderboard */}
+      <section className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-2">Top Performers</h2>
+          <p className="text-sm text-slate-500 mb-6 flex items-center gap-1">
+            <Info size={12} />
+            Prices per 1,000 tokens
+          </p>
+          
+          <div className="glass-panel p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 text-xs text-slate-500 uppercase tracking-wider">
+              <div className="flex items-center gap-4">
+                <span className="w-6 text-center">#</span>
+                <span>Name</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="w-20">Price/1K</span>
+                <span className="w-16 text-right">24h</span>
+                <span className="w-12 text-right">Score</span>
+              </div>
+            </div>
+            
+            {/* Rows */}
+            {allStocks.map((stock, index) => (
+              <LeaderboardRow
+                key={`${stock.category}-${stock.id}`}
+                rank={index + 1}
+                name={stock.name}
+                type={stock.type}
+                score={stock.score}
+                previousScore={stock.previousScore}
+                category={stock.category as 'agent' | 'individual'}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 px-6 border-t border-white/5">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Get Listed?</h2>
+          <p className="text-slate-400 mb-8">
+            Create your performance stock for just $12. Let the community invest in your proven track record.
+          </p>
+          <Link href="/create" className="btn-primary inline-flex items-center gap-2">
+            Create Your Stock
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
