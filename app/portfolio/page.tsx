@@ -6,11 +6,11 @@ import {
   Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   ExternalLink, Copy, Check, RefreshCw, PieChart, Activity,
   Bot, User, ChevronRight, Clock, DollarSign,
-  Plus, ArrowRight
+  Plus, AlertCircle
 } from 'lucide-react';
 import { TypeBadge, Avatar, LoadingSpinner } from '@/components/ui';
 import { AgentType, IndividualType } from '@/types';
-import { formatPrice, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
+import { getUserHoldings, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -43,16 +43,37 @@ interface Transaction {
 }
 
 // ============================================================================
+// GET MOCK WALLET (same as TradeWidget)
+// ============================================================================
+
+function getMockWallet(): string {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('tzurix_mock_wallet');
+    if (stored) return stored;
+    
+    const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let wallet = '';
+    for (let i = 0; i < 44; i++) {
+      wallet += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    localStorage.setItem('tzurix_mock_wallet', wallet);
+    return wallet;
+  }
+  return '';
+}
+
+// ============================================================================
 // CONNECT WALLET PROMPT
 // ============================================================================
 
-function ConnectWalletPrompt() {
+function ConnectWalletPrompt({ onConnect }: { onConnect: () => void }) {
   const [connecting, setConnecting] = useState(false);
   
   const handleConnect = async () => {
     setConnecting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    window.location.reload();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    onConnect();
+    setConnecting(false);
   };
   
   return (
@@ -150,8 +171,8 @@ function PortfolioSummary({
           <Activity size={16} className="text-slate-500" />
           <span className="text-sm text-slate-400">24h Change</span>
         </div>
-        <p className="text-2xl font-bold font-mono text-emerald-400">+2.4%</p>
-        <p className="text-sm text-emerald-400/70">+$48.20</p>
+        <p className="text-2xl font-bold font-mono text-slate-400">--</p>
+        <p className="text-sm text-slate-500">Coming soon</p>
       </div>
     </div>
   );
@@ -273,7 +294,7 @@ function HoldingsCards({ holdings }: { holdings: Holding[] }) {
           <Link
             key={`${holding.category}-${holding.id}`}
             href={profileUrl}
-            className="glass-panel p-4 block hover:bg-white/5 transition-colors"
+            className="glass-panel p-4 block"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
@@ -286,18 +307,18 @@ function HoldingsCards({ holdings }: { holdings: Holding[] }) {
               <ChevronRight size={18} className="text-slate-500" />
             </div>
             
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
-                <p className="text-slate-500 text-xs mb-1">Tokens</p>
+                <p className="text-slate-500 text-xs">Tokens</p>
                 <p className="font-mono">{formatNumber(holding.tokens)}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs mb-1">Value</p>
-                <p className="font-mono font-semibold">${formatNumber(holding.value)}</p>
+                <p className="text-slate-500 text-xs">Value</p>
+                <p className="font-mono">${formatNumber(holding.value)}</p>
               </div>
               <div className="text-right">
-                <p className="text-slate-500 text-xs mb-1">P&amp;L</p>
-                <p className={`font-mono font-semibold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className="text-slate-500 text-xs">P&L</p>
+                <p className={`font-mono ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                   {isPositive ? '+' : ''}{formatPercent(holding.pnlPercent)}
                 </p>
               </div>
@@ -314,105 +335,57 @@ function HoldingsCards({ holdings }: { holdings: Holding[] }) {
 // ============================================================================
 
 function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
-  const [copied, setCopied] = useState<string | null>(null);
-  
-  const copyTxHash = (hash: string) => {
-    navigator.clipboard.writeText(hash);
-    setCopied(hash);
-    setTimeout(() => setCopied(null), 2000);
-  };
-  
   if (transactions.length === 0) {
     return (
-      <div className="glass-panel p-8 text-center">
-        <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Clock className="text-slate-600" size={32} />
-        </div>
-        <h3 className="font-semibold mb-2">No Transactions Yet</h3>
-        <p className="text-slate-400 text-sm">
-          Your trading history will appear here after your first trade.
-        </p>
+      <div className="glass-panel p-6 text-center">
+        <Clock className="mx-auto text-slate-600 mb-2" size={24} />
+        <p className="text-slate-500 text-sm">No transactions yet</p>
       </div>
     );
   }
   
   return (
-    <div className="glass-panel overflow-hidden">
-      <div className="p-4 border-b border-white/10">
-        <h3 className="font-semibold">Recent Transactions</h3>
-      </div>
-      
-      <div className="divide-y divide-white/5">
-        {transactions.map((tx) => {
-          const isBuy = tx.type === 'buy';
-          
-          return (
-            <div key={tx.id} className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  isBuy ? 'bg-emerald-500/20' : 'bg-red-500/20'
-                }`}>
-                  {isBuy ? (
-                    <ArrowDownRight className="text-emerald-400" size={20} />
-                  ) : (
-                    <ArrowUpRight className="text-red-400" size={20} />
-                  )}
+    <div className="glass-panel divide-y divide-white/5">
+      {transactions.map((tx) => (
+        <div key={tx.id} className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {tx.type === 'buy' ? (
+                <div className="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                  <ArrowDownRight size={14} className="text-emerald-400" />
                 </div>
-                
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                      isBuy ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {isBuy ? 'BUY' : 'SELL'}
-                    </span>
-                    <span className="font-medium">{tx.stockName}</span>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-1">
-                    {tx.tokens} tokens @ ${tx.price.toFixed(2)}
-                  </p>
+              ) : (
+                <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <ArrowUpRight size={14} className="text-red-400" />
                 </div>
-              </div>
-              
-              <div className="text-right">
-                <p className={`font-mono font-semibold ${isBuy ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {isBuy ? '-' : '+'}${formatNumber(tx.total)}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-slate-500">{tx.timestamp}</span>
-                  <button
-                    onClick={() => copyTxHash(tx.txHash)}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
-                    title="Copy transaction hash"
-                  >
-                    {copied === tx.txHash ? (
-                      <Check size={12} className="text-emerald-400" />
-                    ) : (
-                      <Copy size={12} className="text-slate-500" />
-                    )}
-                  </button>
-                  <a
-                    href={`https://solscan.io/tx/${tx.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
-                    title="View on Solscan"
-                  >
-                    <ExternalLink size={12} className="text-slate-500" />
-                  </a>
-                </div>
-              </div>
+              )}
+              <span className={`text-sm font-medium ${tx.type === 'buy' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {tx.type === 'buy' ? 'Bought' : 'Sold'}
+              </span>
             </div>
-          );
-        })}
-      </div>
-      
-      <div className="p-4 border-t border-white/10 text-center">
-        <button className="text-cyan-400 text-sm hover:underline inline-flex items-center gap-1">
-          View All Transactions
-          <ArrowRight size={14} />
-        </button>
-      </div>
+            <span className="text-xs text-slate-500">{tx.timestamp}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{tx.stockName}</p>
+              <p className="text-xs text-slate-500">{formatNumber(tx.tokens)} tokens @ ${tx.price.toFixed(4)}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-mono font-medium">${tx.total.toFixed(2)}</p>
+              <a
+                href={`https://solscan.io/tx/${tx.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-cyan-400 hover:underline inline-flex items-center gap-1"
+              >
+                {tx.txHash.slice(0, 8)}...
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -431,15 +404,15 @@ function WalletInfoBar({ address, onDisconnect }: { address: string; onDisconnec
   };
   
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 p-4 bg-white/5 rounded-xl">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center border border-white/10">
+        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center">
           <Wallet className="text-cyan-400" size={20} />
         </div>
         <div>
-          <p className="text-sm text-slate-400">Connected Wallet</p>
+          <p className="text-xs text-slate-500">Connected Wallet</p>
           <div className="flex items-center gap-2">
-            <p className="font-mono text-sm">{shortenAddress(address, 6)}</p>
+            <span className="font-mono text-sm">{shortenAddress(address, 6)}</span>
             <button
               onClick={copyAddress}
               className="p-1 hover:bg-white/10 rounded transition-colors"
@@ -462,12 +435,18 @@ function WalletInfoBar({ address, onDisconnect }: { address: string; onDisconnec
         </div>
       </div>
       
-      <button
-        onClick={onDisconnect}
-        className="text-sm text-slate-400 hover:text-white transition-colors"
-      >
-        Disconnect
-      </button>
+      {/* Testnet Badge */}
+      <div className="flex items-center gap-4">
+        <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full">
+          <span className="text-xs text-cyan-400">🧪 Testnet Mode</span>
+        </div>
+        <button
+          onClick={onDisconnect}
+          className="text-sm text-slate-400 hover:text-white transition-colors"
+        >
+          Disconnect
+        </button>
+      </div>
     </div>
   );
 }
@@ -477,9 +456,10 @@ function WalletInfoBar({ address, onDisconnect }: { address: string; onDisconnec
 // ============================================================================
 
 export default function PortfolioPage() {
-  const [isConnected, setIsConnected] = useState(true);
-  const [walletAddress] = useState('7jDVmS8HBdDNdtGXSxepjcktvG6FzbPurZvYUVgY7TG5');
+  const [isConnected, setIsConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
@@ -488,155 +468,85 @@ export default function PortfolioPage() {
   const totalPnl = totalValue - totalCost;
   const totalPnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
   
+  // Check for existing mock wallet on mount
   useEffect(() => {
-    if (isConnected) {
+    const mockWallet = getMockWallet();
+    if (mockWallet) {
+      setWalletAddress(mockWallet);
+      setIsConnected(true);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+  
+  // Load portfolio data when connected
+  useEffect(() => {
+    if (isConnected && walletAddress) {
       loadPortfolioData();
     }
-  }, [isConnected]);
+  }, [isConnected, walletAddress]);
   
   const loadPortfolioData = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    setError(null);
     
-    setHoldings([
-      {
-        id: 1,
-        name: 'AlphaBot',
-        category: 'agent',
-        type: 'trading',
-        tokens: 150,
-        avgBuyPrice: 0.72,
-        currentScore: 85,
-        currentPrice: 0.85,
-        value: 127.50,
-        pnl: 19.50,
-        pnlPercent: 18.06
-      },
-      {
-        id: 2,
-        name: 'YieldMax',
-        category: 'agent',
-        type: 'defi',
-        tokens: 200,
-        avgBuyPrice: 0.45,
-        currentScore: 62,
-        currentPrice: 0.62,
-        value: 124.00,
-        pnl: 34.00,
-        pnlPercent: 37.78
-      },
-      {
-        id: 3,
-        name: 'CryptoWhale',
-        category: 'individual',
-        type: 'trader',
-        tokens: 75,
-        avgBuyPrice: 0.90,
-        currentScore: 85,
-        currentPrice: 0.85,
-        value: 63.75,
-        pnl: -3.75,
-        pnlPercent: -5.56
-      },
-      {
-        id: 4,
-        name: 'SolanaShark',
-        category: 'agent',
-        type: 'trading',
-        tokens: 500,
-        avgBuyPrice: 0.28,
-        currentScore: 34,
-        currentPrice: 0.34,
-        value: 170.00,
-        pnl: 30.00,
-        pnlPercent: 21.43
-      },
-      {
-        id: 5,
-        name: 'DeFiDev',
-        category: 'individual',
-        type: 'developer',
-        tokens: 100,
-        avgBuyPrice: 0.55,
-        currentScore: 58,
-        currentPrice: 0.58,
-        value: 58.00,
-        pnl: 3.00,
-        pnlPercent: 5.45
+    try {
+      // Fetch real holdings from backend
+      const holdingsResponse = await getUserHoldings(walletAddress);
+      
+      if (holdingsResponse && holdingsResponse.holdings && holdingsResponse.holdings.length > 0) {
+        // Transform backend data to frontend format
+        const transformedHoldings: Holding[] = holdingsResponse.holdings.map((h) => ({
+          id: h.agent_id,
+          name: h.agent_name || `Agent #${h.agent_id}`,
+          category: 'agent' as const,
+          type: 'trading' as AgentType, // Default type, ideally backend should return this
+          tokens: h.token_amount,
+          avgBuyPrice: h.avg_buy_price_sol * 150, // Convert SOL to USD estimate
+          currentScore: Math.round(h.current_price_usd / 0.01), // Reverse price formula
+          currentPrice: h.current_price_usd,
+          value: h.current_value_usd,
+          pnl: h.current_value_usd - (h.avg_buy_price_sol * 150 * h.token_amount),
+          pnlPercent: h.pnl_percent,
+        }));
+        
+        setHoldings(transformedHoldings);
+      } else {
+        setHoldings([]);
       }
-    ]);
-    
-    setTransactions([
-      {
-        id: '1',
-        type: 'buy',
-        stockName: 'AlphaBot',
-        stockCategory: 'agent',
-        tokens: 50,
-        price: 0.82,
-        total: 41.00,
-        timestamp: '2 hours ago',
-        txHash: '5KtP9x8Qm'
-      },
-      {
-        id: '2',
-        type: 'sell',
-        stockName: 'MemeBot',
-        stockCategory: 'agent',
-        tokens: 100,
-        price: 0.15,
-        total: 15.00,
-        timestamp: '5 hours ago',
-        txHash: '3mNp7k2Wv'
-      },
-      {
-        id: '3',
-        type: 'buy',
-        stockName: 'CryptoWhale',
-        stockCategory: 'individual',
-        tokens: 75,
-        price: 0.90,
-        total: 67.50,
-        timestamp: '1 day ago',
-        txHash: '8xRt2p5Lm'
-      },
-      {
-        id: '4',
-        type: 'buy',
-        stockName: 'YieldMax',
-        stockCategory: 'agent',
-        tokens: 200,
-        price: 0.45,
-        total: 90.00,
-        timestamp: '2 days ago',
-        txHash: '1qWe3n9Bv'
-      },
-      {
-        id: '5',
-        type: 'buy',
-        stockName: 'SolanaShark',
-        stockCategory: 'agent',
-        tokens: 500,
-        price: 0.28,
-        total: 140.00,
-        timestamp: '3 days ago',
-        txHash: '7yUi4m3Cx'
-      }
-    ]);
-    
-    setLoading(false);
+      
+      // Fetch transactions (if endpoint exists)
+      // For now, leave empty - backend would need a /api/user/{wallet}/trades endpoint
+      setTransactions([]);
+      
+    } catch (err) {
+      console.error('Error loading portfolio:', err);
+      setError('Failed to load portfolio data. Please try again.');
+      setHoldings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleConnect = () => {
+    const wallet = getMockWallet();
+    setWalletAddress(wallet);
+    setIsConnected(true);
   };
   
   const handleDisconnect = () => {
     setIsConnected(false);
+    setWalletAddress('');
     setHoldings([]);
     setTransactions([]);
+    // Optionally clear the mock wallet
+    // localStorage.removeItem('tzurix_mock_wallet');
   };
   
   if (!isConnected) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-10">
-        <ConnectWalletPrompt />
+        <ConnectWalletPrompt onConnect={handleConnect} />
       </div>
     );
   }
@@ -653,6 +563,20 @@ export default function PortfolioPage() {
       </div>
       
       <WalletInfoBar address={walletAddress} onDisconnect={handleDisconnect} />
+      
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-400">
+          <AlertCircle size={20} />
+          <span>{error}</span>
+          <button 
+            onClick={loadPortfolioData}
+            className="ml-auto text-sm underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       
       <PortfolioSummary
         totalValue={totalValue}
