@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import TzurixLogo from '@/components/ui/TzurixLogo';
 import { AGENT_TYPES } from '@/lib/constants';
+import { createAgent } from '@/lib/api';
 import { AgentType } from '@/types';
 
 // ============================================================================
@@ -805,10 +806,28 @@ export default function CreateAgentPage() {
   
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setCreatedAgentId(Math.floor(Math.random() * 1000) + 1);
-    setIsSubmitting(false);
-    setCurrentStep(7);
+  
+    try {
+      // Use the first wallet as the agent's main wallet
+      const result = await createAgent({
+        wallet_address: wallets[0],
+        name: agentData.name,
+        description: agentData.description,
+        creator_wallet: '7jDVmS8HBdDNdtGXSxepjcktvG6FzbPurZvYUVgY7TG5', // TODO: Use actual connected wallet
+      });
+    
+      if (result.success && result.agent) {
+        setCreatedAgentId(result.agent.id);
+        setCurrentStep(7);
+      } else {
+        alert(result.error || 'Failed to create agent. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 7));
