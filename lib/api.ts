@@ -87,6 +87,62 @@ export async function getIndividual(id: string): Promise<IndividualStock | null>
 // Note: createIndividual not implemented yet - backend needs Individual model first
 
 // =============================================================================
+// SCORING APIs
+// =============================================================================
+
+export interface WalletMetrics {
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate: number;
+  total_pnl_sol: number;
+  total_volume_sol: number;
+  avg_trade_pnl: number;
+  avg_hold_time_hours: number;
+  trades_per_day: number;
+  unique_tokens_traded: number;
+  largest_win_sol: number;
+  largest_loss_sol: number;
+  risk_adjusted_return: number;
+}
+
+export interface WalletScoreResponse {
+  success: boolean;
+  wallet_address: string;
+  raw_score: number;
+  final_score: number;
+  previous_score: number;
+  capped: boolean;
+  calculated_at: string;
+  using_real_data: boolean;
+  metrics: WalletMetrics;
+}
+
+/**
+ * Get detailed score and metrics for a wallet address
+ */
+export async function getWalletScore(walletAddress: string): Promise<WalletScoreResponse | null> {
+  const response = await fetchApi<WalletScoreResponse>(`/api/score/${walletAddress}`);
+  return response.success ? response.data || null : null;
+}
+
+/**
+ * Refresh an agent's score from on-chain data
+ */
+export async function refreshAgentScore(agentId: number): Promise<{ success: boolean; agent?: AgentStock; error?: string }> {
+  const response = await fetchApi<{ success: boolean; agent: AgentStock; error?: string }>(
+    `/api/agent/${agentId}/refresh-score`,
+    { method: 'POST' }
+  );
+  
+  if (!response.success || !response.data) {
+    return { success: false, error: response.error || 'Failed to refresh score' };
+  }
+  
+  return response.data;
+}
+
+// =============================================================================
 // TRADING APIs
 // =============================================================================
 
@@ -252,4 +308,4 @@ export function shortenAddress(address: string, chars: number = 4): string {
 export function formatSOL(lamports: number): string {
   const sol = lamports / 1_000_000_000;
   return `${sol.toFixed(4)} SOL`;
-} 
+}
