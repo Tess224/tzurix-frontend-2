@@ -125,8 +125,7 @@ export const TIME_RANGES = [
 // =============================================================================
 
 export const EXTERNAL_LINKS = {
-  solscan: 'https://solscan.io',
-  solscanAddress: (address: string) => `https://solscan.io/account/${address}?cluster=devnet`,
+  solscan: (address: string) => `https://solscan.io/account/${address}?cluster=devnet`,
   solscanToken: (mint: string) => `https://solscan.io/token/${mint}?cluster=devnet`,
   solscanTx: (signature: string) => `https://solscan.io/tx/${signature}?cluster=devnet`,
   twitter: 'https://twitter.com/tzurix',
