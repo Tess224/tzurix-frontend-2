@@ -13,73 +13,10 @@ import {
 } from 'recharts';
 import { TypeBadge, ScoreDisplay, Avatar, LoadingSpinner } from '@/components/ui';
 import { getAgent, formatPrice, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
+import TradeWidget from '@/components/TradeWidget';
 import { AGENT_TYPES, TIME_RANGES, EXTERNAL_LINKS } from '@/lib/constants';
 import { AgentStock, AgentMetrics, DailyScore } from '@/types';
 
-// TRADE WIDGET
-function TradeWidget({ agent }: { agent: AgentStock }) {
-  const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
-  const [amount, setAmount] = useState('');
-  
-  const price = agent.current_score * 0.01;
-  const total = parseFloat(amount || '0') * price;
-  
-  return (
-    <div className="glass-panel p-6">
-      <h3 className="font-semibold mb-4">Trade</h3>
-      
-      <div className="flex bg-white/5 rounded-xl p-1 mb-4">
-        <button
-          onClick={() => setTradeType('buy')}
-          className={`flex-1 py-2 rounded-lg font-medium transition-all ${tradeType === 'buy' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'}`}
-        >
-          Buy
-        </button>
-        <button
-          onClick={() => setTradeType('sell')}
-          className={`flex-1 py-2 rounded-lg font-medium transition-all ${tradeType === 'sell' ? 'bg-red-500 text-white' : 'text-slate-400 hover:text-white'}`}
-        >
-          Sell
-        </button>
-      </div>
-      
-      <div className="bg-white/5 rounded-xl p-4 mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-slate-400">Current Price</span>
-          <span className="font-mono text-lg">${price.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between items-center text-xs text-slate-500">
-          <span>Score × $0.01</span>
-          <span>{agent.current_score} × $0.01</span>
-        </div>
-      </div>
-      
-      <div className="mb-4">
-        <label className="text-sm text-slate-400 mb-2 block">Amount (tokens)</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0"
-          className="input-field text-lg font-mono"
-        />
-      </div>
-      
-      <div className="bg-white/5 rounded-xl p-4 mb-4">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-slate-400">Total</span>
-          <span className="font-mono text-xl font-bold">${total.toFixed(2)}</span>
-        </div>
-      </div>
-      
-      <button className={`w-full py-3 rounded-xl font-bold transition-all ${tradeType === 'buy' ? 'bg-emerald-500 hover:bg-emerald-400 text-black' : 'bg-red-500 hover:bg-red-400 text-white'}`}>
-        {tradeType === 'buy' ? 'Buy' : 'Sell'} {agent.name}
-      </button>
-      
-      <p className="text-xs text-slate-500 text-center mt-3">Connect wallet to trade</p>
-    </div>
-  );
-}
 
 // SCORE CHART
 function ScoreChart({ history }: { history: DailyScore[] }) {
@@ -441,7 +378,7 @@ export default function AgentPage() {
         
         {/* Sidebar */}
         <div className="space-y-6">
-          <TradeWidget agent={agent} />
+          <TradeWidget agent={agent} onTradeComplete={fetchAgent} />
           
           {/* Prediction Markets Placeholder */}
           <div className="glass-panel p-6">
