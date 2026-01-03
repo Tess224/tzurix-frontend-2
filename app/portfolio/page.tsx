@@ -10,7 +10,15 @@ import {
 } from 'lucide-react';
 import { TypeBadge, Avatar, LoadingSpinner } from '@/components/ui';
 import { AgentType, IndividualType } from '@/types';
-import { getUserHoldings, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
+import { 
+  getUserHoldings, 
+  getUserTransactions,
+  shortenAddress, 
+  formatNumber, 
+  formatPercent,
+  formatTimeAgo,
+  UserTransaction
+} from '@/lib/api';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -31,15 +39,17 @@ interface Holding {
 }
 
 interface Transaction {
-  id: string;
+  id: number;
   type: 'buy' | 'sell';
+  agentId: number;
   stockName: string;
   stockCategory: 'agent' | 'individual';
   tokens: number;
+  solAmount: number;
   price: number;
-  total: number;
+  score: number | null;
   timestamp: string;
-  txHash: string;
+  txHash: string | null;
 }
 
 // ============================================================================
@@ -331,15 +341,31 @@ function HoldingsCards({ holdings }: { holdings: Holding[] }) {
 }
 
 // ============================================================================
-// TRANSACTION HISTORY
+// TRANSACTION HISTORY (FIXED!)
 // ============================================================================
 
-function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
+function TransactionHistory({ 
+  transactions, 
+  loading 
+}: { 
+  transactions: Transaction[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="glass-panel p-6 text-center">
+        <RefreshCw className="mx-auto text-cyan-400 mb-2 animate-spin" size={24} />
+        <p className="text-slate-500 text-sm">Loading transactions...</p>
+      </div>
+    );
+  }
+  
   if (transactions.length === 0) {
     return (
       <div className="glass-panel p-6 text-center">
         <Clock className="mx-auto text-slate-600 mb-2" size={24} />
         <p className="text-slate-500 text-sm">No transactions yet</p>
+        <p className="text-slate-600 text-xs mt-1">Your buy/sell activity will appear here</p>
       </div>
     );
   }
@@ -368,20 +394,32 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">{tx.stockName}</p>
-              <p className="text-xs text-slate-500">{formatNumber(tx.tokens)} tokens @ ${tx.price.toFixed(4)}</p>
+              <Link 
+                href={`/agent/${tx.agentId}`}
+                className="font-medium hover:text-cyan-400 transition-colors"
+              >
+                {tx.stockName}
+              </Link>
+              <p className="text-xs text-slate-500">
+                {formatNumber(tx.tokens)} tokens @ ${tx.price.toFixed(4)}
+                {tx.score && <span className="ml-2">(Score: {tx.score})</span>}
+              </p>
             </div>
             <div className="text-right">
-              <p className="font-mono font-medium">${tx.total.toFixed(2)}</p>
-              <a
-                href={`https://solscan.io/tx/${tx.txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-cyan-400 hover:underline inline-flex items-center gap-1"
-              >
-                {tx.txHash.slice(0, 8)}...
-                <ExternalLink size={10} />
-              </a>
+              <p className="font-mono font-medium">{tx.solAmount.toFixed(4)} SOL</p>
+              {tx.txHash ? (
+                <a
+                  href={`https://solscan.io/tx/${tx.txHash}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-cyan-400 hover:underline inline-flex items-center gap-1"
+                >
+                  {tx.txHash.slice(0, 8)}...
+                  <ExternalLink size={10} />
+                </a>
+              ) : (
+                <span className="text-xs text-slate-500">Testnet</span>
+              )}
             </div>
           </div>
         </div>
@@ -424,7 +462,7 @@ function WalletInfoBar({ address, onDisconnect }: { address: string; onDisconnec
               )}
             </button>
             <a
-              href={`https://solscan.io/account/${address}`}
+              href={`https://solscan.io/account/${address}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-1 hover:bg-white/10 rounded transition-colors"
@@ -459,6 +497,7 @@ export default function PortfolioPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [loading, setLoading] = useState(true);
+  const [txLoading, setTxLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -483,6 +522,7 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (isConnected && walletAddress) {
       loadPortfolioData();
+      loadTransactions();
     }
   }, [isConnected, walletAddress]);
   
@@ -500,10 +540,10 @@ export default function PortfolioPage() {
           id: h.agent_id,
           name: h.agent_name || `Agent #${h.agent_id}`,
           category: 'agent' as const,
-          type: 'trading' as AgentType, // Default type, ideally backend should return this
+          type: 'trading' as AgentType,
           tokens: h.token_amount,
-          avgBuyPrice: h.avg_buy_price_sol * 150, // Convert SOL to USD estimate
-          currentScore: Math.round(h.current_price_usd / 0.01), // Reverse price formula
+          avgBuyPrice: h.avg_buy_price_sol * 150,
+          currentScore: Math.round(h.current_price_usd / 0.01),
           currentPrice: h.current_price_usd,
           value: h.current_value_usd,
           pnl: h.current_value_usd - (h.avg_buy_price_sol * 150 * h.token_amount),
@@ -515,16 +555,48 @@ export default function PortfolioPage() {
         setHoldings([]);
       }
       
-      // Fetch transactions (if endpoint exists)
-      // For now, leave empty - backend would need a /api/user/{wallet}/trades endpoint
-      setTransactions([]);
-      
     } catch (err) {
       console.error('Error loading portfolio:', err);
       setError('Failed to load portfolio data. Please try again.');
       setHoldings([]);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadTransactions = async () => {
+    setTxLoading(true);
+    
+    try {
+      // Fetch transactions from backend
+      const txResponse = await getUserTransactions(walletAddress, { limit: 20 });
+      
+      if (txResponse && txResponse.transactions && txResponse.transactions.length > 0) {
+        // Transform backend data to frontend format
+        const transformedTx: Transaction[] = txResponse.transactions.map((tx) => ({
+          id: tx.id,
+          type: tx.side,
+          agentId: tx.agent_id,
+          stockName: tx.agent_name || `Agent #${tx.agent_id}`,
+          stockCategory: 'agent' as const,
+          tokens: tx.token_amount,
+          solAmount: tx.sol_amount_display,
+          price: tx.price_at_trade,
+          score: tx.score_at_trade,
+          timestamp: formatTimeAgo(tx.created_at),
+          txHash: tx.tx_signature,
+        }));
+        
+        setTransactions(transformedTx);
+      } else {
+        setTransactions([]);
+      }
+      
+    } catch (err) {
+      console.error('Error loading transactions:', err);
+      setTransactions([]);
+    } finally {
+      setTxLoading(false);
     }
   };
   
@@ -539,8 +611,11 @@ export default function PortfolioPage() {
     setWalletAddress('');
     setHoldings([]);
     setTransactions([]);
-    // Optionally clear the mock wallet
-    // localStorage.removeItem('tzurix_mock_wallet');
+  };
+  
+  const handleRefresh = () => {
+    loadPortfolioData();
+    loadTransactions();
   };
   
   if (!isConnected) {
@@ -570,7 +645,7 @@ export default function PortfolioPage() {
           <AlertCircle size={20} />
           <span>{error}</span>
           <button 
-            onClick={loadPortfolioData}
+            onClick={handleRefresh}
             className="ml-auto text-sm underline hover:no-underline"
           >
             Retry
@@ -590,7 +665,7 @@ export default function PortfolioPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Your Holdings</h2>
             <button 
-              onClick={loadPortfolioData}
+              onClick={handleRefresh}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400"
               title="Refresh"
             >
@@ -608,8 +683,11 @@ export default function PortfolioPage() {
         </div>
         
         <div>
-          <h2 className="text-xl font-semibold mb-4">Activity</h2>
-          <TransactionHistory transactions={transactions} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Activity</h2>
+            <span className="text-xs text-slate-500">{transactions.length} trades</span>
+          </div>
+          <TransactionHistory transactions={transactions} loading={txLoading} />
         </div>
       </div>
       
