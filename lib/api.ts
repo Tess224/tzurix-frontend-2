@@ -283,6 +283,57 @@ export async function getUserHoldings(walletAddress: string): Promise<UserHoldin
 }
 
 // =============================================================================
+// USER TRANSACTIONS API (NEW!)
+// =============================================================================
+
+export interface UserTransaction {
+  id: number;
+  agent_id: number;
+  agent_name: string | null;
+  trader_wallet: string;
+  side: 'buy' | 'sell';
+  token_amount: number;
+  sol_amount: number;
+  sol_amount_display: number;
+  price_at_trade: number;
+  score_at_trade: number | null;
+  tx_signature: string | null;
+  created_at: string;
+}
+
+export interface UserTransactionsResponse {
+  success: boolean;
+  wallet_address: string;
+  transactions: UserTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Get user's transaction history (buys and sells)
+ */
+export async function getUserTransactions(
+  walletAddress: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    agentId?: number;
+  }
+): Promise<UserTransactionsResponse | null> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.offset) params.append('offset', options.offset.toString());
+  if (options?.agentId) params.append('agent_id', options.agentId.toString());
+  
+  const queryString = params.toString();
+  const endpoint = `/api/user/${walletAddress}/transactions${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetchApi<UserTransactionsResponse>(endpoint);
+  return response.success ? response.data || null : null;
+}
+
+// =============================================================================
 // FORMAT HELPERS
 // =============================================================================
 
@@ -308,4 +359,20 @@ export function shortenAddress(address: string, chars: number = 4): string {
 export function formatSOL(lamports: number): string {
   const sol = lamports / 1_000_000_000;
   return `${sol.toFixed(4)} SOL`;
+}
+
+/**
+ * Format a date string to relative time (e.g., "2 hours ago")
+ */
+export function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  
+  return date.toLocaleDateString();
 }
