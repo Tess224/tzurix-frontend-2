@@ -44,6 +44,7 @@ export const INDIVIDUAL_TYPES = {
   influencer: { label: 'Influencer', icon: Megaphone, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/30' },
   developer: { label: 'Developer', icon: Code, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' },
   analyst: { label: 'Analyst', icon: PieChart, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+  creator: { label: 'Creator', icon: Palette, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
 } as const;
 
 // =============================================================================
