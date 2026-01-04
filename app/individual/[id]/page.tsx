@@ -498,11 +498,23 @@ export default function IndividualPage() {
               
               {/* Score Display (top right) */}
               <div className="text-right">
-                <ScoreDisplay 
-                  score={individual.current_score} 
-                  previousScore={individual.previous_score} 
-                  size="lg" 
-                />
+                <div className="flex items-center gap-3">
+                  <div className="text-5xl font-bold">{individual.current_score.toFixed(1)}</div>
+                  {individual.previous_score && (
+                    <div className={`flex items-center gap-1 text-sm ${
+                      individual.current_score > individual.previous_score ? 'text-emerald-400' : 
+                      individual.current_score < individual.previous_score ? 'text-red-400' : 
+                      'text-slate-400'
+                    }`}>
+                      {individual.current_score > individual.previous_score && <TrendingUp size={18} />}
+                      {individual.current_score < individual.previous_score && <TrendingDown size={18} />}
+                      <span className="font-medium">
+                        {individual.current_score > individual.previous_score && '+'}
+                        {(((individual.current_score - individual.previous_score) / individual.previous_score) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-slate-400 text-sm mt-1">
                   {formatPrice(individual.current_score)}
                 </p>
