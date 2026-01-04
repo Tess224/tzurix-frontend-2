@@ -336,45 +336,31 @@ export default function AgentDetailPage() {
             </div>
           </div>
           
-          {/* Score History Chart Placeholder */}
-          <div className="glass-panel p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Score History</h2>
-              <span className="text-xs text-slate-500">{scoreHistory.length} data points</span>
-            </div>
-            
-            {scoreHistory.length > 0 ? (
-              <div className="space-y-2">
-                {/* Simple score history list for now */}
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {scoreHistory.slice(0, 10).map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="text-sm text-slate-400">
-                        {new Date(entry.calculated_at).toLocaleString()}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold">{entry.score}</span>
-                        {entry.raw_score && entry.raw_score !== entry.score && (
-                          <span className="text-xs text-slate-500">(raw: {entry.raw_score})</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {scoreHistory.length > 10 && (
-                  <p className="text-xs text-slate-500 text-center">
-                    +{scoreHistory.length - 10} more entries
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="h-40 flex items-center justify-center text-slate-500">
-                <p>No score history available yet</p>
-              </div>
-            )}
-          </div>
-        </div>
+          {/* Score History Chart */}
+<div className="glass-panel p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-lg font-semibold">Score History</h2>
+    <span className="text-xs text-slate-500">{scoreHistory.length} data points</span>
+  </div>
+
+  <ScoreChart history={scoreHistory} />
+
+  {/* Chart Legend */}
+  <div className="flex items-center gap-6 mt-4 text-xs text-slate-500">
+    <div className="flex items-center gap-2">
+      <div className="w-3 h-0.5 bg-cyan-500" />
+      <span>Final Score</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-3 h-0.5 bg-slate-500" style={{ borderStyle: 'dashed' }} />
+      <span>Raw Score</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-amber-500" />
+      <span>Capped Day</span>
+    </div>
+  </div>
+</div>
         
         {/* Sidebar - Trade Widget */}
         <div className="lg:col-span-1">
