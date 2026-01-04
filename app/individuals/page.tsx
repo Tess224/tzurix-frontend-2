@@ -116,7 +116,7 @@ function IndividualRow({ individual, rank }: { individual: IndividualStock; rank
           {isPositive ? '+' : ''}{priceChange.toFixed(1)}%
         </div>
         <div className="w-16 text-right">
-          <ScoreDisplay score={individual.current_score} size="sm" />
+          <div className="text-xl font-bold">{individual.current_score.toFixed(1)}</div>
         </div>
         <div className="w-20 text-right font-mono text-sm text-slate-400">
           {formatNumber(individual.holders || 0)}
