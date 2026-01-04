@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, BarChart3 } from 'lucide-react';
+import { Users, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import { Stock } from '@/types';
 import { TypeBadge, Avatar } from '@/components/ui';
 import { formatPrice, formatNumber } from '@/lib/api';
@@ -25,11 +25,27 @@ export default function StockCard({ stock }: { stock: Stock }) {
         
         <div className="flex items-end justify-between mb-4">
           <div>
-            <p className="text-xs text-slate-500 uppercase mb-1">Score</p>
-            <ScoreDisplay score={stock.current_score} previousScore={stock.previous_score} wasCapped={wasCapped} />
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500 uppercase mb-1">Price</p>
+  <p className="text-xs text-slate-500 uppercase mb-1">Score</p>
+  <div className="flex items-center gap-2">
+    <div className="text-2xl font-bold">{stock.current_score.toFixed(1)}</div>
+    {stock.previous_score && (
+      <div className={`flex items-center gap-1 text-xs ${
+        stock.current_score > stock.previous_score ? 'text-emerald-400' : 
+        stock.current_score < stock.previous_score ? 'text-red-400' : 
+        'text-slate-400'
+      }`}>
+        {stock.current_score > stock.previous_score && <TrendingUp size={12} />}
+        {stock.current_score < stock.previous_score && <TrendingDown size={12} />}
+        <span className="font-medium">
+          {stock.current_score > stock.previous_score && '+'}
+          {(((stock.current_score - stock.previous_score) / stock.previous_score) * 100).toFixed(1)}%
+        </span>
+      </div>
+    )}
+  </div>
+</div>
+<div className="text-right">
+  <p className="text-xs text-slate-500 uppercase mb-1">Price</p>
             <p className="font-mono text-lg text-white">{formatPrice(stock.current_score)}</p>
           </div>
         </div>
