@@ -4,577 +4,355 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, ExternalLink, Copy, Check, TrendingUp, TrendingDown,
-  Users, BarChart3, Clock, Calendar, Wallet, Activity,
-  Target, Percent, DollarSign, AlertTriangle, ChevronDown, ChevronUp, Info,
-  RefreshCw, Zap
+  ArrowLeft, ExternalLink, Copy, Check, RefreshCw,
+  TrendingUp, TrendingDown, Users, BarChart3, Clock,
+  Zap, AlertCircle, Share2
 } from 'lucide-react';
-import {
-  LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
-} from 'recharts';
-import { TypeBadge, ScoreDisplay, Avatar, LoadingSpinner } from '@/components/ui';
-import { getAgent, getWalletScore, formatPrice, shortenAddress, formatNumber, formatPercent, WalletMetrics } from '@/lib/api';
+import { AgentStock, ScoreHistoryEntry } from '@/types';
+import { 
+  getAgent, 
+  getAgentScoreHistory,
+  refreshAgentScore,
+  shortenAddress, 
+  formatNumber, 
+  formatPercent,
+  formatTimeAgo
+} from '@/lib/api';
+import { 
+  Avatar, 
+  TypeBadge, 
+  ScoreBadge, 
+  LoadingSpinner, 
+  ErrorMessage 
+} from '@/components/ui';
 import TradeWidget from '@/components/TradeWidget';
-import { AGENT_TYPES, TIME_RANGES, EXTERNAL_LINKS } from '@/lib/constants';
-import { AgentStock, AgentMetrics, DailyScore } from '@/types';
 
-
-// SCORE CHART
-function ScoreChart({ history }: { history: DailyScore[] }) {
-  const chartData = history.length > 0 ? history : [
-    { date: '12/22', final_score: 10, raw_score: 10, was_capped: false },
-    { date: '12/23', final_score: 10, raw_score: 11, was_capped: false },
-    { date: '12/24', final_score: 11, raw_score: 12, was_capped: false },
-    { date: '12/25', final_score: 11, raw_score: 11, was_capped: false },
-    { date: '12/26', final_score: 11, raw_score: 14, was_capped: true },
-    { date: '12/27', final_score: 11, raw_score: 11, was_capped: false },
-    { date: '12/28', final_score: 11, raw_score: 11, was_capped: false },
-  ];
-  
-  return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <RechartsLineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} domain={['dataMin - 2', 'dataMax + 2']} />
-          <Tooltip
-            contentStyle={{ backgroundColor: '#0B1220', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px' }}
-            labelStyle={{ color: '#94a3b8' }}
-          />
-          <Line type="monotone" dataKey="raw_score" stroke="#64748b" strokeWidth={1} strokeDasharray="5 5" dot={false} />
-          <Line 
-            type="monotone" 
-            dataKey="final_score" 
-            stroke="#4CC9F0" 
-            strokeWidth={2}
-            dot={(props: any) => {
-              const { cx, cy, payload } = props;
-              if (payload.was_capped) {
-                return <circle cx={cx} cy={cy} r={4} fill="#FF9F1C" stroke="#FF9F1C" />;
-              }
-              return <circle cx={cx} cy={cy} r={3} fill="#4CC9F0" />;
-            }}
-          />
-        </RechartsLineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// REAL METRICS DISPLAY (from Helius)
-function RealMetricsDisplay({ 
-  metrics, 
-  loading, 
-  usingRealData,
-  onRefresh 
-}: { 
-  metrics: WalletMetrics | null; 
-  loading: boolean;
-  usingRealData: boolean;
-  onRefresh: () => void;
-}) {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white/5 rounded-xl p-4 animate-pulse">
-            <div className="h-4 bg-white/10 rounded w-20 mb-2" />
-            <div className="h-6 bg-white/10 rounded w-16" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-  
-  if (!metrics) {
-    return (
-      <div className="bg-white/5 rounded-xl p-6 text-center">
-        <AlertTriangle className="mx-auto text-amber-400 mb-2" size={24} />
-        <p className="text-slate-400 text-sm">Unable to load metrics</p>
-        <button onClick={onRefresh} className="mt-2 text-cyan-400 text-sm hover:underline">
-          Try again
-        </button>
-      </div>
-    );
-  }
-  
-  const pnlIsPositive = metrics.total_pnl_sol >= 0;
-  
-  const metricsData = [
-    { 
-      label: 'Total P&L', 
-      value: `${pnlIsPositive ? '+' : ''}${metrics.total_pnl_sol.toFixed(2)} SOL`, 
-      icon: DollarSign,
-      color: pnlIsPositive ? 'text-emerald-400' : 'text-red-400'
-    },
-    { 
-      label: 'Win Rate', 
-      value: `${metrics.win_rate.toFixed(1)}%`, 
-      icon: Target,
-      color: metrics.win_rate >= 50 ? 'text-emerald-400' : 'text-red-400'
-    },
-    { 
-      label: 'Total Trades', 
-      value: metrics.total_trades.toString(), 
-      icon: Activity,
-      color: 'text-white'
-    },
-    { 
-      label: 'Volume', 
-      value: `${metrics.total_volume_sol.toFixed(1)} SOL`, 
-      icon: BarChart3,
-      color: 'text-white'
-    },
-    { 
-      label: 'Avg Trade P&L', 
-      value: `${metrics.avg_trade_pnl >= 0 ? '+' : ''}${metrics.avg_trade_pnl.toFixed(3)} SOL`, 
-      icon: TrendingUp,
-      color: metrics.avg_trade_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
-    },
-    { 
-      label: 'Avg Hold Time', 
-      value: `${metrics.avg_hold_time_hours.toFixed(1)}h`, 
-      icon: Clock,
-      color: 'text-white'
-    },
-    { 
-      label: 'Trades/Day', 
-      value: metrics.trades_per_day.toFixed(1), 
-      icon: Zap,
-      color: 'text-white'
-    },
-    { 
-      label: 'Tokens Traded', 
-      value: metrics.unique_tokens_traded.toString(), 
-      icon: Activity,
-      color: 'text-white'
-    },
-  ];
-  
-  return (
-    <div>
-      {/* Data Source Badge */}
-      <div className="flex items-center justify-between mb-4">
-        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${
-          usingRealData 
-            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' 
-            : 'bg-amber-500/20 border border-amber-500/30 text-amber-400'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${usingRealData ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
-          {usingRealData ? 'Live On-Chain Data' : 'Simulated Data'}
-        </div>
-        <button 
-          onClick={onRefresh}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
-          title="Refresh metrics"
-        >
-          <RefreshCw size={16} />
-        </button>
-      </div>
-      
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {metricsData.map((metric, i) => {
-          const Icon = metric.icon;
-          return (
-            <div key={i} className="bg-white/5 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={14} className="text-slate-500" />
-                <span className="text-xs text-slate-500">{metric.label}</span>
-              </div>
-              <p className={`font-mono text-lg font-semibold ${metric.color}`}>{metric.value}</p>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Additional Stats */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <div className="bg-white/5 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500">Largest Win</span>
-            <TrendingUp size={14} className="text-emerald-400" />
-          </div>
-          <p className="font-mono text-lg font-semibold text-emerald-400">
-            +{metrics.largest_win_sol.toFixed(2)} SOL
-          </p>
-        </div>
-        <div className="bg-white/5 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500">Largest Loss</span>
-            <TrendingDown size={14} className="text-red-400" />
-          </div>
-          <p className="font-mono text-lg font-semibold text-red-400">
-            {metrics.largest_loss_sol.toFixed(2)} SOL
-          </p>
-        </div>
-      </div>
-      
-      {/* Win/Loss Bar */}
-      <div className="mt-4 bg-white/5 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <span className="text-emerald-400">{metrics.winning_trades} Wins</span>
-          <span className="text-slate-500">
-            {metrics.total_trades > 0 
-              ? `${((metrics.winning_trades / metrics.total_trades) * 100).toFixed(0)}%` 
-              : '0%'}
-          </span>
-          <span className="text-red-400">{metrics.losing_trades} Losses</span>
-        </div>
-        <div className="flex h-2 rounded-full overflow-hidden bg-white/10">
-          <div 
-            className="bg-emerald-500 transition-all" 
-            style={{ width: metrics.total_trades > 0 ? `${(metrics.winning_trades / metrics.total_trades) * 100}%` : '0%' }} 
-          />
-          <div 
-            className="bg-red-500 transition-all" 
-            style={{ width: metrics.total_trades > 0 ? `${(metrics.losing_trades / metrics.total_trades) * 100}%` : '0%' }} 
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// SCORE BREAKDOWN
-function ScoreBreakdown({ metrics }: { metrics: WalletMetrics | null }) {
-  const [expanded, setExpanded] = useState(false);
-  
-  // Calculate breakdown from real metrics if available
-  const performanceValue = metrics ? Math.min(100, Math.max(0, 50 + metrics.total_pnl_sol * 2 + metrics.win_rate * 0.3)) : 85;
-  const reliabilityValue = metrics ? Math.min(100, Math.max(0, metrics.total_trades > 10 ? 70 + (metrics.win_rate - 50) * 0.4 : 50)) : 72;
-  const reputationValue = 60; // This would come from holder data
-  
-  const breakdown = [
-    { 
-      name: 'Performance', 
-      weight: '50%', 
-      value: Math.round(performanceValue), 
-      points: (performanceValue / 100) * 5, 
-      description: 'Based on P&L, win rate, and trading consistency' 
-    },
-    { 
-      name: 'Reliability', 
-      weight: '30%', 
-      value: Math.round(reliabilityValue), 
-      points: (reliabilityValue / 100) * 3, 
-      description: 'Based on trade count, consistency, and activity' 
-    },
-    { 
-      name: 'Reputation', 
-      weight: '20%', 
-      value: reputationValue, 
-      points: (reputationValue / 100) * 2, 
-      description: 'Based on holder count, creator credibility' 
-    },
-  ];
-  
-  const totalPoints = breakdown.reduce((sum, b) => sum + b.points, 0);
-  
-  return (
-    <div className="glass-panel p-6">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="font-semibold">Score Breakdown</h3>
-          <span className="text-sm text-cyan-400 font-mono">{totalPoints.toFixed(1)} / 10</span>
-        </div>
-        {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-      </button>
-      
-      {expanded && (
-        <div className="mt-4 space-y-4">
-          {breakdown.map((item, i) => (
-            <div key={i} className="bg-white/5 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{item.name}</span>
-                <span className="text-cyan-400 font-mono">{item.points.toFixed(2)} pts</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-slate-400 mb-2">
-                <span>Weight: {item.weight}</span>
-                <span>Value: {item.value}/100</span>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2">
-                <div className="bg-cyan-500 h-2 rounded-full transition-all" style={{ width: `${item.value}%` }} />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">{item.description}</p>
-            </div>
-          ))}
-          
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <Info size={18} className="text-amber-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-amber-400 font-medium">Daily Score Cap</p>
-                <p className="text-xs text-slate-400 mt-1">Scores can only change by ±10% per day to prevent manipulation.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// TRACKED WALLETS
-function TrackedWallets({ wallets, mainWallet }: { wallets?: string[]; mainWallet: string }) {
-  const [copied, setCopied] = useState<string | null>(null);
-  const allWallets = wallets?.length ? wallets : [mainWallet];
-  
-  const copyAddress = (address: string) => {
-    navigator.clipboard.writeText(address);
-    setCopied(address);
-    setTimeout(() => setCopied(null), 2000);
-  };
-  
-  return (
-    <div className="glass-panel p-6">
-      <h3 className="font-semibold mb-4">Tracked Wallets</h3>
-      <div className="space-y-3">
-        {allWallets.map((wallet, i) => (
-          <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
-            <div className="flex items-center gap-3">
-              <Wallet size={16} className="text-slate-500" />
-              <span className="font-mono text-sm">{shortenAddress(wallet, 8)}</span>
-              {i === 0 && <span className="text-[10px] px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full">Primary</span>}
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => copyAddress(wallet)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                {copied === wallet ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-              </button>
-              <a href={EXTERNAL_LINKS.solscan(wallet)} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                <ExternalLink size={14} />
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// MAIN PAGE
-export default function AgentPage() {
+export default function AgentDetailPage() {
   const params = useParams();
   const agentId = params.id as string;
   
   const [agent, setAgent] = useState<AgentStock | null>(null);
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState(7);
-  const [scoreHistory] = useState<DailyScore[]>([]);
-  
-  // Real metrics state
-  const [walletMetrics, setWalletMetrics] = useState<WalletMetrics | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(false);
-  const [usingRealData, setUsingRealData] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   
   useEffect(() => {
-    fetchAgent();
+    if (agentId) {
+      loadAgent();
+      loadScoreHistory();
+    }
   }, [agentId]);
   
-  const fetchAgent = async () => {
+  const loadAgent = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
       const data = await getAgent(agentId);
       if (data) {
         setAgent(data);
-        // Fetch real metrics after getting agent
-        fetchMetrics(data.wallet_address);
       } else {
-        // Mock data for development
-        const mockAgent: AgentStock = {
-          id: parseInt(agentId),
-          name: 'Alpha Trading Bot',
-          type: 'trading',
-          category: 'agent',
-          current_score: 11,
-          previous_score: 10,
-          raw_score: 14,
-          was_capped: true,
-          wallet_address: '7jDVmS8HBdDNdtGXSxepjcktvG6FzbPurZvYUVgY7TG5',
-          holders: 24,
-          volume_24h: 1250,
-          total_volume: 45000,
-          market_cap_usd: 11000,
-          created_at: '2024-12-20',
-          creator_wallet: 'DCAKxn5PFNN1mBREPWGdk1RXg5aVH9rPErLfBFEi2Cj6',
-          description: 'High-frequency trading bot specializing in Solana memecoins with advanced momentum detection.',
-        };
-        setAgent(mockAgent);
-        fetchMetrics(mockAgent.wallet_address);
+        setError('Agent not found');
       }
-    } catch (error) {
-      console.error('Error fetching agent:', error);
+    } catch (err) {
+      console.error('Error loading agent:', err);
+      setError('Failed to load agent');
     } finally {
       setLoading(false);
     }
   };
   
-  const fetchMetrics = async (walletAddress: string) => {
+  const loadScoreHistory = async () => {
     try {
-      setMetricsLoading(true);
-      const scoreData = await getWalletScore(walletAddress);
-      if (scoreData && scoreData.metrics) {
-        setWalletMetrics(scoreData.metrics);
-        setUsingRealData(scoreData.using_real_data);
-      }
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
-    } finally {
-      setMetricsLoading(false);
+      const history = await getAgentScoreHistory(agentId, { days: 30 });
+      setScoreHistory(history);
+    } catch (err) {
+      console.error('Error loading score history:', err);
     }
   };
   
-  const handleRefreshMetrics = () => {
-    if (agent) {
-      fetchMetrics(agent.wallet_address);
+  const handleRefreshScore = async () => {
+    if (!agent) return;
+    
+    setRefreshing(true);
+    try {
+      const result = await refreshAgentScore(agent.id);
+      if (result.success && result.agent) {
+        setAgent(result.agent);
+        loadScoreHistory(); // Reload history after refresh
+      }
+    } catch (err) {
+      console.error('Error refreshing score:', err);
+    } finally {
+      setRefreshing(false);
     }
+  };
+  
+  const copyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
   
   if (loading) return <LoadingSpinner />;
   
-  if (!agent) {
+  if (error || !agent) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-10 text-center">
-        <h1 className="text-2xl font-bold mb-4">Agent Not Found</h1>
-        <Link href="/" className="text-cyan-400 hover:underline">← Back to Home</Link>
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <ErrorMessage message={error || 'Agent not found'} onRetry={loadAgent} />
+        <Link href="/agents" className="mt-4 inline-flex items-center gap-2 text-cyan-400 hover:underline">
+          <ArrowLeft size={18} />
+          Back to Agents
+        </Link>
       </div>
     );
   }
   
-  const typeConfig = AGENT_TYPES[agent.type as keyof typeof AGENT_TYPES];
+  const scoreChange = agent.previous_score 
+    ? ((agent.current_score - agent.previous_score) / agent.previous_score) * 100 
+    : 0;
+  const isPositive = scoreChange >= 0;
   
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
-      <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
+      {/* Back Link */}
+      <Link href="/agents" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
         <ArrowLeft size={18} />
-        Back to Discovery
+        Back to Agents
       </Link>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Header */}
+          {/* Header Card */}
           <div className="glass-panel p-6">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <Avatar category="agent" size="lg" />
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <Avatar category={agent.category} size="lg" />
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-2xl font-bold">{agent.name}</h1>
-                    <TypeBadge type={agent.type} category="agent" />
-                  </div>
-                  <p className="text-slate-400 text-sm mb-3">{agent.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      Created {agent.created_at}
-                    </span>
+                  <h1 className="text-2xl font-bold mb-1">{agent.name}</h1>
+                  <div className="flex items-center gap-2">
+                    <TypeBadge type={agent.type} category={agent.category} size="md" />
+                    {agent.was_capped && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full">
+                        Score Capped
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
               
+              {/* Score */}
               <div className="text-right">
-                <ScoreDisplay score={agent.current_score} previousScore={agent.previous_score} wasCapped={agent.was_capped} size="lg" />
-                <p className="text-slate-400 text-sm mt-1">{formatPrice(agent.current_score)}</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <span className="text-4xl font-bold font-mono">{agent.current_score}</span>
+                  <button
+                    onClick={handleRefreshScore}
+                    disabled={refreshing}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    title="Refresh score from on-chain data"
+                  >
+                    <RefreshCw size={18} className={`text-slate-400 ${refreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+                {scoreChange !== 0 && (
+                  <div className={`flex items-center justify-end gap-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                    <span className="font-mono">{formatPercent(scoreChange)}</span>
+                  </div>
+                )}
+                {agent.raw_score !== agent.current_score && (
+                  <p className="text-xs text-slate-500 mt-1">Raw: {agent.raw_score}</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Description */}
+            {agent.description && (
+              <p className="text-slate-400 mb-6">{agent.description}</p>
+            )}
+            
+            {/* Wallet Addresses */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white/5 rounded-xl">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Agent Wallet</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">{shortenAddress(agent.wallet_address, 6)}</span>
+                  <button
+                    onClick={() => copyAddress(agent.wallet_address)}
+                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                  >
+                    {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-slate-500" />}
+                  </button>
+                  <a
+                    href={`https://solscan.io/account/${agent.wallet_address}?cluster=devnet`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                  >
+                    <ExternalLink size={14} className="text-slate-500" />
+                  </a>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Creator Wallet</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">{shortenAddress(agent.creator_wallet, 6)}</span>
+                  <a
+                    href={`https://solscan.io/account/${agent.creator_wallet}?cluster=devnet`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                  >
+                    <ExternalLink size={14} className="text-slate-500" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>
           
-          {/* Stats Row */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="glass-panel p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Users size={14} className="text-slate-500" />
-                <span className="text-xs text-slate-500">Holders</span>
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Users size={16} />
+                <span className="text-xs">Holders</span>
               </div>
-              <p className="font-mono text-xl font-semibold">{formatNumber(agent.holders || 0)}</p>
+              <p className="text-xl font-mono font-bold">{formatNumber(agent.holders)}</p>
             </div>
+            
             <div className="glass-panel p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <BarChart3 size={14} className="text-slate-500" />
-                <span className="text-xs text-slate-500">24h Volume</span>
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <BarChart3 size={16} />
+                <span className="text-xs">24h Volume</span>
               </div>
-              <p className="font-mono text-xl font-semibold">${formatNumber(agent.volume_24h || 0)}</p>
+              <p className="text-xl font-mono font-bold">${formatNumber(agent.volume_24h)}</p>
             </div>
+            
             <div className="glass-panel p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Activity size={14} className="text-slate-500" />
-                <span className="text-xs text-slate-500">Total Volume</span>
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Zap size={16} />
+                <span className="text-xs">Total Volume</span>
               </div>
-              <p className="font-mono text-xl font-semibold">${formatNumber(agent.total_volume || 0)}</p>
+              <p className="text-xl font-mono font-bold">${formatNumber(agent.total_volume)}</p>
             </div>
+            
             <div className="glass-panel p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign size={14} className="text-slate-500" />
-                <span className="text-xs text-slate-500">Market Cap</span>
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Clock size={16} />
+                <span className="text-xs">Last Update</span>
               </div>
-              <p className="font-mono text-xl font-semibold">${formatNumber(agent.market_cap_usd || 0)}</p>
+              <p className="text-sm font-mono">
+                {agent.last_score_update ? formatTimeAgo(agent.last_score_update) : 'Never'}
+              </p>
             </div>
           </div>
           
-          {/* Score Chart */}
+          {/* Price Info */}
+          <div className="glass-panel p-6">
+            <h2 className="text-lg font-semibold mb-4">Pricing</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Price (per 1K tokens)</p>
+                <p className="text-2xl font-mono font-bold text-cyan-400">
+                  ${agent.display_price.toFixed(2)}
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Price (per token)</p>
+                <p className="text-lg font-mono">${agent.price_usd.toFixed(6)}</p>
+              </div>
+              
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Market Cap</p>
+                <p className="text-lg font-mono">${formatNumber(agent.market_cap_usd)}</p>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+              <p className="text-sm text-cyan-400">
+                💡 Price Formula: Score × $0.01 per 1,000 tokens
+              </p>
+            </div>
+          </div>
+          
+          {/* Score History Chart Placeholder */}
           <div className="glass-panel p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Score History</h3>
-              <div className="flex bg-white/5 rounded-lg p-1">
-                {TIME_RANGES.map((range) => (
-                  <button
-                    key={range.value}
-                    onClick={() => setTimeRange(range.value)}
-                    className={`px-3 py-1 rounded text-sm transition-all ${timeRange === range.value ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    {range.label}
-                  </button>
-                ))}
-              </div>
+              <h2 className="text-lg font-semibold">Score History</h2>
+              <span className="text-xs text-slate-500">{scoreHistory.length} data points</span>
             </div>
             
-            <ScoreChart history={scoreHistory} />
-            
-            <div className="flex items-center gap-6 mt-4 text-xs text-slate-500">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-cyan-500" />
-                <span>Final Score</span>
+            {scoreHistory.length > 0 ? (
+              <div className="space-y-2">
+                {/* Simple score history list for now */}
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {scoreHistory.slice(0, 10).map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <span className="text-sm text-slate-400">
+                        {new Date(entry.calculated_at).toLocaleString()}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold">{entry.score}</span>
+                        {entry.raw_score && entry.raw_score !== entry.score && (
+                          <span className="text-xs text-slate-500">(raw: {entry.raw_score})</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {scoreHistory.length > 10 && (
+                  <p className="text-xs text-slate-500 text-center">
+                    +{scoreHistory.length - 10} more entries
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-slate-500" style={{ borderStyle: 'dashed' }} />
-                <span>Raw Score</span>
+            ) : (
+              <div className="h-40 flex items-center justify-center text-slate-500">
+                <p>No score history available yet</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Capped Day</span>
-              </div>
-            </div>
+            )}
           </div>
-          
-          {/* Real Metrics from Helius */}
-          <div className="glass-panel p-6">
-            <h3 className="font-semibold mb-4">On-Chain Trading Metrics</h3>
-            <RealMetricsDisplay 
-              metrics={walletMetrics} 
-              loading={metricsLoading}
-              usingRealData={usingRealData}
-              onRefresh={handleRefreshMetrics}
-            />
-          </div>
-          
-          {/* Tracked Wallets */}
-          <TrackedWallets wallets={agent.agent_wallets} mainWallet={agent.wallet_address} />
-          
-          {/* Score Breakdown */}
-          <ScoreBreakdown metrics={walletMetrics} />
         </div>
         
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <TradeWidget agent={agent} onTradeComplete={fetchAgent} />
-          
-          {/* Prediction Markets Placeholder */}
-          <div className="glass-panel p-6">
-            <h3 className="font-semibold mb-4">Prediction Markets</h3>
-            <div className="text-center py-8">
-              <p className="text-slate-500 text-sm">No active markets</p>
-              <button className="mt-3 text-cyan-400 text-sm hover:underline">Create Prediction</button>
+        {/* Sidebar - Trade Widget */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <TradeWidget 
+              agentId={agent.id}
+              agentName={agent.name}
+              currentScore={agent.current_score}
+              displayPrice={agent.display_price}
+            />
+            
+            {/* Share */}
+            <div className="glass-panel p-4 mt-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Share2 size={16} />
+                Share
+              </h3>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('Link copied!');
+                }}
+                className="w-full btn-secondary text-sm"
+              >
+                Copy Link
+              </button>
+            </div>
+            
+            {/* Created Info */}
+            <div className="glass-panel p-4 mt-4">
+              <p className="text-xs text-slate-500">Created</p>
+              <p className="text-sm">
+                {agent.created_at ? new Date(agent.created_at).toLocaleDateString() : 'Unknown'}
+              </p>
             </div>
           </div>
         </div>
