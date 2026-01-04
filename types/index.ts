@@ -99,6 +99,36 @@ export interface IndividualStock {
   
   created_at: string | null;
   updated_at: string | null;
+
+  twitter_handle?: string;
+  metrics?: IndividualMetrics;
+}
+
+// =============================================================================
+// INDIVIDUAL METRICS (type-specific performance data)
+// =============================================================================
+
+export interface IndividualMetrics {
+  // Trader metrics
+  pnl_30d?: number;
+  win_rate?: number;
+  total_trades?: number;
+  
+  // Influencer/Social metrics
+  followers?: number;
+  engagement_rate?: number;
+  posts_24h?: number;
+  avg_likes?: number;
+  
+  // Developer metrics
+  repos?: number;
+  contributions?: number;
+  stars?: number;
+  
+  // Analyst metrics
+  accuracy?: number;
+  calls_made?: number;
+  avg_return?: number;
 }
 
 // =============================================================================
