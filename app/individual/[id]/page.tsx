@@ -11,7 +11,7 @@ import {
 import {
   LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { TypeBadge, ScoreDisplay, Avatar, LoadingSpinner } from '@/components/ui';
+import { TypeBadge, Avatar, LoadingSpinner } from '@/components/ui';
 import { getIndividual, formatPrice, shortenAddress, formatNumber, formatPercent } from '@/lib/api';
 import { INDIVIDUAL_TYPES, TIME_RANGES, EXTERNAL_LINKS } from '@/lib/constants';
 import { IndividualStock, IndividualMetrics, DailyScore } from '@/types';
