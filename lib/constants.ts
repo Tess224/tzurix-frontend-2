@@ -1,7 +1,7 @@
 // lib/constants.ts
 // Tzurix Core Constants
 
-import { LineChart, MessageCircle, Landmark, Wrench, Megaphone, Code, PieChart } from 'lucide-react';
+import { LineChart, MessageCircle, Landmark, Wrench, Megaphone, Code, PieChart, Palette } from 'lucide-react';
 
 // =============================================================================
 // SCORING & PRICING (NEW)
