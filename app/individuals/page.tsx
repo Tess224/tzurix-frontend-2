@@ -46,7 +46,23 @@ function IndividualCard({ individual }: { individual: IndividualStock }) {
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-500 mb-1">Score</p>
-          <ScoreDisplay score={individual.current_score} previousScore={individual.previous_score} size="md" />
+          <div className="flex items-center gap-3">
+            <div className="text-3xl font-bold">{individual.current_score.toFixed(1)}</div>
+            {individual.previous_score && (
+              <div className={`flex items-center gap-1 text-sm ${
+                individual.current_score > individual.previous_score ? 'text-emerald-400' : 
+                individual.current_score < individual.previous_score ? 'text-red-400' : 
+                'text-slate-400'
+              }`}>
+                {individual.current_score > individual.previous_score && <TrendingUp size={14} />}
+                {individual.current_score < individual.previous_score && <TrendingDown size={14} />}
+                <span className="font-medium">
+                  {individual.current_score > individual.previous_score && '+'}
+                  {(((individual.current_score - individual.previous_score) / individual.previous_score) * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
