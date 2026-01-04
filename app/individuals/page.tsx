@@ -6,7 +6,7 @@ import {
   Search, Filter, TrendingUp, TrendingDown, Users, BarChart3,
   ChevronDown, User, ArrowRight
 } from 'lucide-react';
-import { TypeBadge, ScoreDisplay, Avatar, LoadingSpinner } from '@/components/ui';
+import { TypeBadge, Avatar, LoadingSpinner } from '@/components/ui';
 import { getIndividuals, formatPrice, formatNumber } from '@/lib/api';
 import { INDIVIDUAL_TYPES, SORT_OPTIONS } from '@/lib/constants';
 import { IndividualStock } from '@/types';
