@@ -1,28 +1,26 @@
-// ============================================================================
-// TZURIX FRONTEND API
-// Synced with Backend v2 (January 2026)
-// ============================================================================
-
 import { 
   AgentStock, 
   IndividualStock, 
-  DailyScore,
-  TradeQuote,
-  TradeResult,
+  ScoreHistoryEntry,
+  Trade,
   UserHolding,
-  UserTransaction,
-  UserHoldingsResponse,
-  UserTransactionsResponse,
-  WalletScoreResponse,
-  LeaderboardResponse
+  WalletScoreResult,
+  LeaderboardMetric,
+  LeaderboardResponse,
+  AgentType,
+  FilterOptions
 } from '@/types';
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
 
 // ⚠️ CHANGE THIS TO YOUR RAILWAY BACKEND URL
 export const API_BASE = 'https://tzurix.up.railway.app';
 
-// ============================================================================
+// =============================================================================
 // FETCH WRAPPER
-// ============================================================================
+// =============================================================================
 
 async function fetchApi<T>(
   endpoint: string, 
@@ -44,13 +42,13 @@ async function fetchApi<T>(
   }
 }
 
-// ============================================================================
+// =============================================================================
 // AGENT APIs
-// ============================================================================
+// =============================================================================
 
-export interface GetAgentsParams {
+interface GetAgentsOptions {
   sort?: 'score' | 'newest' | 'name' | 'volume' | 'holders';
-  type?: 'trading' | 'social' | 'defi' | 'utility';
+  type?: AgentType;
   category?: 'agent' | 'individual';
   limit?: number;
 }
@@ -58,14 +56,14 @@ export interface GetAgentsParams {
 /**
  * Get list of agents with optional filtering and sorting
  */
-export async function getAgents(params?: GetAgentsParams): Promise<AgentStock[]> {
-  const searchParams = new URLSearchParams();
-  if (params?.sort) searchParams.append('sort', params.sort);
-  if (params?.type) searchParams.append('type', params.type);
-  if (params?.category) searchParams.append('category', params.category);
-  if (params?.limit) searchParams.append('limit', params.limit.toString());
+export async function getAgents(options?: GetAgentsOptions): Promise<AgentStock[]> {
+  const params = new URLSearchParams();
+  if (options?.sort) params.append('sort', options.sort);
+  if (options?.type) params.append('type', options.type);
+  if (options?.category) params.append('category', options.category);
+  if (options?.limit) params.append('limit', options.limit.toString());
   
-  const queryString = searchParams.toString();
+  const queryString = params.toString();
   const endpoint = `/api/agents${queryString ? `?${queryString}` : ''}`;
   
   const response = await fetchApi<{ agents: AgentStock[] }>(endpoint);
@@ -93,7 +91,7 @@ export interface CreateAgentParams {
   name: string;
   description?: string;
   creator_wallet: string;
-  type?: 'trading' | 'social' | 'defi' | 'utility';
+  type?: AgentType;
   category?: 'agent' | 'individual';
 }
 
@@ -127,28 +125,117 @@ export async function createAgent(params: CreateAgentParams): Promise<CreateAgen
   return response.data;
 }
 
+// =============================================================================
+// INDIVIDUAL APIs (uses same agent endpoints with category filter)
+// =============================================================================
+
 /**
- * Get agent score history
+ * Get list of individuals
  */
-export async function getAgentHistory(agentId: number, days: number = 30): Promise<DailyScore[]> {
-  const response = await fetchApi<{ history: DailyScore[] }>(
-    `/api/agents/${agentId}/history?days=${days}`
-  );
-  return response.data?.history || [];
+export async function getIndividuals(): Promise<IndividualStock[]> {
+  const response = await fetchApi<{ agents: IndividualStock[] }>('/api/agents?category=individual');
+  return response.data?.agents || [];
 }
 
 /**
- * Refresh agent score from on-chain data
+ * Get single individual by ID
+ */
+export async function getIndividual(id: string | number): Promise<IndividualStock | null> {
+  const response = await fetchApi<{ agent: IndividualStock }>(`/api/agents/${id}`);
+  const agent = response.data?.agent;
+  if (agent && agent.category === 'individual') {
+    return agent;
+  }
+  return null;
+}
+
+// =============================================================================
+// LEADERBOARD API (NEW!)
+// =============================================================================
+
+interface GetLeaderboardOptions {
+  metric?: LeaderboardMetric;
+  type?: AgentType;
+  limit?: number;
+}
+
+/**
+ * Get leaderboard - top agents by various metrics
+ */
+export async function getLeaderboard(options?: GetLeaderboardOptions): Promise<AgentStock[]> {
+  const params = new URLSearchParams();
+  if (options?.metric) params.append('metric', options.metric);
+  if (options?.type) params.append('type', options.type);
+  if (options?.limit) params.append('limit', options.limit.toString());
+  
+  const queryString = params.toString();
+  const endpoint = `/api/leaderboard${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetchApi<LeaderboardResponse>(endpoint);
+  return response.data?.agents || [];
+}
+
+// =============================================================================
+// SCORE HISTORY API (NEW!)
+// =============================================================================
+
+interface GetScoreHistoryOptions {
+  days?: number;
+}
+
+/**
+ * Get score history for an agent (for charts)
+ */
+export async function getAgentScoreHistory(
+  agentId: string | number,
+  options?: GetScoreHistoryOptions
+): Promise<ScoreHistoryEntry[]> {
+  const params = new URLSearchParams();
+  if (options?.days) params.append('days', options.days.toString());
+  
+  const queryString = params.toString();
+  const endpoint = `/api/agents/${agentId}/history${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetchApi<{ history: ScoreHistoryEntry[] }>(endpoint);
+  return response.data?.history || [];
+}
+
+// =============================================================================
+// SCORING APIs
+// =============================================================================
+
+/**
+ * Get detailed score and metrics for a wallet address
+ */
+export async function getWalletScore(walletAddress: string): Promise<WalletScoreResult | null> {
+  const response = await fetchApi<{ success: boolean } & WalletScoreResult>(`/api/score/${walletAddress}`);
+  if (response.success && response.data) {
+    return response.data;
+  }
+  return null;
+}
+
+/**
+ * Refresh an agent's score from on-chain data
  */
 export async function refreshAgentScore(agentId: number): Promise<{ 
   success: boolean; 
   agent?: AgentStock; 
+  scoring_details?: {
+    raw_score: number;
+    final_score: number;
+    capped: boolean;
+    metrics: {
+      total_trades: number;
+      win_rate: number;
+      total_pnl_sol: number;
+    };
+  };
   error?: string 
 }> {
-  const response = await fetchApi<{ success: boolean; agent: AgentStock; error?: string }>(
-    `/api/agent/${agentId}/refresh-score`,
-    { method: 'POST' }
-  );
+  const response = await fetchApi<any>(`/api/agent/${agentId}/refresh-score`, { 
+    method: 'POST' 
+  });
   
   if (!response.success || !response.data) {
     return { success: false, error: response.error || 'Failed to refresh score' };
@@ -157,61 +244,40 @@ export async function refreshAgentScore(agentId: number): Promise<{
   return response.data;
 }
 
-// ============================================================================
-// INDIVIDUAL APIs (when backend supports)
-// ============================================================================
-
-export async function getIndividuals(): Promise<IndividualStock[]> {
-  const response = await fetchApi<{ individuals: IndividualStock[] }>('/api/individuals');
-  return response.data?.individuals || [];
-}
-
-export async function getIndividual(id: string | number): Promise<IndividualStock | null> {
-  const response = await fetchApi<{ individual: IndividualStock }>(`/api/individuals/${id}`);
-  return response.data?.individual || null;
-}
-
-// ============================================================================
-// LEADERBOARD API
-// ============================================================================
-
-export interface GetLeaderboardParams {
-  metric?: 'score' | 'gainers' | 'volume' | 'holders';
-  type?: 'trading' | 'social' | 'defi' | 'utility';
-  limit?: number;
-}
-
-/**
- * Get leaderboard by various metrics
- */
-export async function getLeaderboard(params?: GetLeaderboardParams): Promise<AgentStock[]> {
-  const searchParams = new URLSearchParams();
-  if (params?.metric) searchParams.append('metric', params.metric);
-  if (params?.type) searchParams.append('type', params.type);
-  if (params?.limit) searchParams.append('limit', params.limit.toString());
-  
-  const queryString = searchParams.toString();
-  const endpoint = `/api/leaderboard${queryString ? `?${queryString}` : ''}`;
-  
-  const response = await fetchApi<LeaderboardResponse>(endpoint);
-  return response.data?.agents || [];
-}
-
-// ============================================================================
-// SCORING APIs
-// ============================================================================
-
-/**
- * Get detailed score and metrics for a wallet address
- */
-export async function getWalletScore(walletAddress: string): Promise<WalletScoreResponse | null> {
-  const response = await fetchApi<WalletScoreResponse>(`/api/score/${walletAddress}`);
-  return response.success ? response.data || null : null;
-}
-
-// ============================================================================
+// =============================================================================
 // TRADING APIs
-// ============================================================================
+// =============================================================================
+
+export interface TradeQuote {
+  success: boolean;
+  side: 'buy' | 'sell';
+  agent_id: number;
+  agent_name: string;
+  sol_amount?: number;
+  token_amount?: number;
+  tokens_received?: number;
+  sol_received?: number;
+  fee_sol: number;
+  price_per_token_sol: number;
+  price_per_token_usd: number;
+  current_score: number;
+}
+
+export interface TradeResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  trade?: Trade;
+  holding?: {
+    token_amount: number;
+    avg_buy_price_sol: number;
+    current_value_usd: number;
+    pnl_percent: number;
+  };
+  sol_spent?: number;
+  sol_received?: number;
+  fee_sol?: number;
+}
 
 /**
  * Get a price quote for buying or selling
@@ -235,7 +301,6 @@ export async function buyTokens(params: {
   agentId: number;
   traderWallet: string;
   solAmount: number;
-  txSignature?: string;
 }): Promise<TradeResult> {
   const response = await fetchApi<TradeResult>('/api/trade/buy', {
     method: 'POST',
@@ -243,7 +308,6 @@ export async function buyTokens(params: {
       agent_id: params.agentId,
       trader_wallet: params.traderWallet,
       sol_amount: params.solAmount,
-      tx_signature: params.txSignature,
     }),
   });
   
@@ -261,7 +325,6 @@ export async function sellTokens(params: {
   agentId: number;
   traderWallet: string;
   tokenAmount: number;
-  txSignature?: string;
 }): Promise<TradeResult> {
   const response = await fetchApi<TradeResult>('/api/trade/sell', {
     method: 'POST',
@@ -269,7 +332,6 @@ export async function sellTokens(params: {
       agent_id: params.agentId,
       trader_wallet: params.traderWallet,
       token_amount: params.tokenAmount,
-      tx_signature: params.txSignature,
     }),
   });
   
@@ -280,9 +342,17 @@ export async function sellTokens(params: {
   return response.data;
 }
 
-// ============================================================================
+// =============================================================================
 // USER APIs
-// ============================================================================
+// =============================================================================
+
+export interface UserHoldingsResponse {
+  success: boolean;
+  wallet_address: string;
+  holdings: UserHolding[];
+  total_value_sol: number;
+  total_value_usd: number;
+}
 
 /**
  * Get user's token holdings
@@ -290,6 +360,30 @@ export async function sellTokens(params: {
 export async function getUserHoldings(walletAddress: string): Promise<UserHoldingsResponse | null> {
   const response = await fetchApi<UserHoldingsResponse>(`/api/user/${walletAddress}/holdings`);
   return response.success ? response.data || null : null;
+}
+
+export interface UserTransaction {
+  id: number;
+  agent_id: number;
+  agent_name: string | null;
+  trader_wallet: string;
+  side: 'buy' | 'sell';
+  token_amount: number;
+  sol_amount: number;
+  sol_amount_display: number;
+  price_at_trade: number;
+  score_at_trade: number | null;
+  tx_signature: string | null;
+  created_at: string;
+}
+
+export interface UserTransactionsResponse {
+  success: boolean;
+  wallet_address: string;
+  transactions: UserTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 /**
@@ -315,35 +409,28 @@ export async function getUserTransactions(
   return response.success ? response.data || null : null;
 }
 
-// ============================================================================
+// =============================================================================
 // FORMAT HELPERS
-// ============================================================================
+// =============================================================================
 
 /**
- * Format score to price: Score × $0.01
+ * Format score to price (Score × $0.01)
  */
 export function formatPrice(score: number): string {
   return `$${(score * 0.01).toFixed(2)}`;
 }
 
 /**
- * Format display price (already calculated by backend)
- */
-export function formatDisplayPrice(displayPrice: number): string {
-  return `$${displayPrice.toFixed(2)}`;
-}
-
-/**
- * Format large numbers: 1000 → 1K, 1000000 → 1M
+ * Format large numbers (1K, 1M, etc.)
  */
 export function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
   return num.toLocaleString();
 }
 
 /**
- * Format percentage with sign: 5.5 → +5.5%
+ * Format percentage with sign
  */
 export function formatPercent(value: number): string {
   const sign = value >= 0 ? '+' : '';
@@ -351,7 +438,7 @@ export function formatPercent(value: number): string {
 }
 
 /**
- * Shorten wallet address: ABC...XYZ
+ * Shorten wallet address
  */
 export function shortenAddress(address: string, chars: number = 4): string {
   if (!address) return '';
@@ -359,7 +446,7 @@ export function shortenAddress(address: string, chars: number = 4): string {
 }
 
 /**
- * Format SOL from lamports
+ * Format lamports to SOL
  */
 export function formatSOL(lamports: number): string {
   const sol = lamports / 1_000_000_000;
@@ -367,14 +454,7 @@ export function formatSOL(lamports: number): string {
 }
 
 /**
- * Format SOL value directly
- */
-export function formatSOLValue(sol: number): string {
-  return `${sol.toFixed(4)} SOL`;
-}
-
-/**
- * Format relative time: "2 hours ago", "Just now"
+ * Format date to relative time
  */
 export function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -390,17 +470,6 @@ export function formatTimeAgo(dateString: string): string {
 }
 
 /**
- * Format date: Jan 3, 2026
- */
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
-/**
  * Calculate score change percentage
  */
 export function calculateScoreChange(current: number, previous: number): number {
@@ -409,19 +478,27 @@ export function calculateScoreChange(current: number, previous: number): number 
 }
 
 /**
- * Get color class based on value (positive/negative)
+ * Get agent type display name
  */
-export function getChangeColor(value: number): string {
-  if (value > 0) return 'text-emerald-400';
-  if (value < 0) return 'text-red-400';
-  return 'text-slate-400';
+export function getAgentTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    trading: 'Trading Bot',
+    social: 'Social Agent',
+    defi: 'DeFi Agent',
+    utility: 'Utility Agent',
+  };
+  return labels[type] || type;
 }
 
 /**
- * Get background color class based on value
+ * Get agent type color class
  */
-export function getChangeBgColor(value: number): string {
-  if (value > 0) return 'bg-emerald-500/20';
-  if (value < 0) return 'bg-red-500/20';
-  return 'bg-slate-500/20';
+export function getAgentTypeColor(type: string): string {
+  const colors: Record<string, string> = {
+    trading: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    social: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+    defi: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    utility: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  };
+  return colors[type] || 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 }
