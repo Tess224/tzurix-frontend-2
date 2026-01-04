@@ -103,7 +103,7 @@ export interface IndividualStock {
   twitter_handle?: string;
   metrics?: IndividualMetrics;
 }
-
+export type Stock = AgentStock | IndividualStock;
 // =============================================================================
 // INDIVIDUAL METRICS (type-specific performance data)
 // =============================================================================
