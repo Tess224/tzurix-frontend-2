@@ -30,6 +30,59 @@ import {
 } from '@/components/ui';
 import TradeWidget from '@/components/TradeWidget';
 
+
+// SCORE CHART COMPONENT - Add this before AgentDetailPage
+function ScoreChart({ history }: { history: ScoreHistoryEntry[] }) {
+  // Transform ScoreHistoryEntry[] to chart format
+  const chartData = history.map(entry => ({
+    date: new Date(entry.calculated_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
+    final_score: entry.score,
+    raw_score: entry.raw_score || entry.score,
+    was_capped: entry.raw_score ? entry.raw_score !== entry.score : false
+  }));
+
+  // Use mock data if no history
+  const displayData = chartData.length > 0 ? chartData : [
+    { date: '12/22', final_score: 10, raw_score: 10, was_capped: false },
+    { date: '12/23', final_score: 10, raw_score: 11, was_capped: false },
+    { date: '12/24', final_score: 11, raw_score: 12, was_capped: false },
+    { date: '12/25', final_score: 11, raw_score: 11, was_capped: false },
+    { date: '12/26', final_score: 11, raw_score: 14, was_capped: true },
+    { date: '12/27', final_score: 11, raw_score: 11, was_capped: false },
+    { date: '12/28', final_score: 11, raw_score: 11, was_capped: false },
+  ];
+  
+  return (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} domain={['dataMin - 2', 'dataMax + 2']} />
+          <Tooltip
+            contentStyle={{ backgroundColor: '#0B1220', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px' }}
+            labelStyle={{ color: '#94a3b8' }}
+          />
+          <Line type="monotone" dataKey="raw_score" stroke="#64748b" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+          <Line 
+            type="monotone" 
+            dataKey="final_score" 
+            stroke="#4CC9F0" 
+            strokeWidth={2}
+            dot={(props: any) => {
+              const { cx, cy, payload } = props;
+              if (payload.was_capped) {
+                return <circle cx={cx} cy={cy} r={4} fill="#FF9F1C" stroke="#FF9F1C" />;
+              }
+              return <circle cx={cx} cy={cy} r={3} fill="#4CC9F0" />;
+            }}
+          />
+        </RechartsLineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
 export default function AgentDetailPage() {
   const params = useParams();
   const agentId = params.id as string;
