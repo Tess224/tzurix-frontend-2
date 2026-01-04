@@ -337,30 +337,31 @@ export default function AgentDetailPage() {
           </div>
           
           {/* Score History Chart */}
-<div className="glass-panel p-6">
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-lg font-semibold">Score History</h2>
-    <span className="text-xs text-slate-500">{scoreHistory.length} data points</span>
-  </div>
+          <div className="glass-panel p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Score History</h2>
+              <span className="text-xs text-slate-500">{scoreHistory.length} data points</span>
+            </div>
 
-  <ScoreChart history={scoreHistory} />
+            <ScoreChart history={scoreHistory} />
 
-  {/* Chart Legend */}
-  <div className="flex items-center gap-6 mt-4 text-xs text-slate-500">
-    <div className="flex items-center gap-2">
-      <div className="w-3 h-0.5 bg-cyan-500" />
-      <span>Final Score</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <div className="w-3 h-0.5 bg-slate-500" style={{ borderStyle: 'dashed' }} />
-      <span>Raw Score</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <div className="w-2 h-2 rounded-full bg-amber-500" />
-      <span>Capped Day</span>
-    </div>
-  </div>
-</div>
+            {/* Chart Legend */}
+            <div className="flex items-center gap-6 mt-4 text-xs text-slate-500">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-cyan-500" />
+                <span>Final Score</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-slate-500" style={{ borderStyle: 'dashed' }} />
+                <span>Raw Score</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>Capped Day</span>
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Sidebar - Trade Widget */}
         <div className="lg:col-span-1">
