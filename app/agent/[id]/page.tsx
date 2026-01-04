@@ -323,12 +323,7 @@ export default function AgentDetailPage() {
         {/* Sidebar - Trade Widget */}
         <div className="lg:col-span-1">
           <div className="sticky top-6">
-            <TradeWidget 
-              agentId={agent.id}
-              agentName={agent.name}
-              currentScore={agent.current_score}
-              displayPrice={agent.display_price}
-            />
+            <TradeWidget agent={agent} />
             
             {/* Share */}
             <div className="glass-panel p-4 mt-4">
