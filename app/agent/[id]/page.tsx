@@ -8,6 +8,9 @@ import {
   TrendingUp, TrendingDown, Users, BarChart3, Clock,
   Zap, AlertCircle, Share2
 } from 'lucide-react';
+import {
+  LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
+} from 'recharts';
 import { AgentStock, ScoreHistoryEntry } from '@/types';
 import { 
   getAgent, 
