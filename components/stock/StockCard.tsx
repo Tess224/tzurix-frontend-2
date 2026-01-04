@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Users, BarChart3 } from 'lucide-react';
 import { Stock } from '@/types';
-import { TypeBadge, ScoreDisplay, Avatar } from '@/components/ui';
+import { TypeBadge, Avatar } from '@/components/ui';
 import { formatPrice, formatNumber } from '@/lib/api';
 
 export default function StockCard({ stock }: { stock: Stock }) {
