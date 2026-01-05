@@ -203,7 +203,7 @@ export default function AgentDetailPage() {
               {/* Score */}
               <div className="text-right">
                 <div className="flex items-center gap-2 justify-end">
-                  <span className="text-4xl font-bold font-mono">{agent.current_score}</span>
+                  <span className="text-4xl font-bold font-mono">{agent.current_score.toFixed(1)}</span>
                   <button
                     onClick={handleRefreshScore}
                     disabled={refreshing}
@@ -220,7 +220,7 @@ export default function AgentDetailPage() {
                   </div>
                 )}
                 {agent.raw_score !== agent.current_score && (
-                  <p className="text-xs text-slate-500 mt-1">Raw: {agent.raw_score}</p>
+                  <p className="text-xs text-slate-500 mt-1">Raw: {agent.raw_score.toFixed(1)}</p>
                 )}
               </div>
             </div>
