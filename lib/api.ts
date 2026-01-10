@@ -11,7 +11,7 @@ import {
   FilterOptions
 } from '@/types';
 import { getSessionId, getWalletAddress } from './session';
-import type { DashboardData, ArenaResult, CreatorAgent, ArenaStatus, TierInfo, TierType } from '@/types';
+import type { DashboardData, ArenaResult, CreatorAgent, ArenaStatus, TierInfo, TierType, ArenaType } from '@/types';
 
 // =============================================================================
 // CONFIGURATION
