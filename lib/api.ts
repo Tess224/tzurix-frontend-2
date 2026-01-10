@@ -247,6 +247,7 @@ export interface CreateAgentParams {
   arena_type?: ArenaType;
   keywords?: string[];
   interface_code?: string;
+  socials?: { twitter: string; github: string; website: string };
 }
 
 export interface CreateAgentResult {
