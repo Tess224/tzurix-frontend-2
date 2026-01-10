@@ -13,7 +13,7 @@ import {
 import { getSessionId, getWalletAddress } from './session';
 import type { DashboardData } from '@/types';
 import type { CreatorAgent } from '@/types';
-
+import type { ArenaStatus } from '@/types';
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
