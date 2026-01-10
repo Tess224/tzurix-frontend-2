@@ -12,6 +12,9 @@ import TzurixLogo from '@/components/ui/TzurixLogo';
 import { AGENT_TYPES } from '@/lib/constants';
 import { createAgent } from '@/lib/api';
 import { AgentType } from '@/types';
+import { useSession } from '@/contexts/SessionContext';
+import { TierType, ArenaType } from '@/types';
+import { Check } from 'lucide-react';
 
 // ============================================================================
 // STEP INDICATOR - Shows progress through the wizard
@@ -1076,6 +1079,7 @@ function Step7Success({ agentName, agentId }: { agentName: string; agentId: numb
 // MAIN PAGE COMPONENT
 // ============================================================================
 export default function CreateAgentPage() {
+  const { session, isConnected, connect } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -1121,7 +1125,11 @@ export default function CreateAgentPage() {
         wallet_address: wallets[0],
         name: agentData.name,
         description: agentData.description,
-        creator_wallet: '7jDVmS8HBdDNdtGXSxepjcktvG6FzbPurZvYUVgY7TG5', // TODO: Use actual connected wallet
+        creator_wallet: session?.walletAddress || '', // Use session
+        type: agentData.type,
+        tier: agentData.tier,
+        arena_type: agentData.arenaType,
+        interface_code: interfaceCode || undefined,
       });
     
       if (result.success && result.agent) {
