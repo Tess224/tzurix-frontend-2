@@ -23,6 +23,7 @@ export const API_BASE = 'https://tzurix.up.railway.app';
 // FETCH WRAPPER
 // =============================================================================
 
+// Update fetchApi to use auth headers
 async function fetchApi<T>(
   endpoint: string, 
   options?: RequestInit
@@ -31,7 +32,7 @@ async function fetchApi<T>(
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...options?.headers,
       },
     });
@@ -65,26 +66,6 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-// Update fetchApi to use auth headers
-async function fetchApi<T>(
-  endpoint: string, 
-  options?: RequestInit
-): Promise<{ success: boolean; data?: T; error?: string }> {
-  try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options?.headers,
-      },
-    });
-    const data = await response.json();
-    return { success: data.success !== false, data };
-  } catch (error) {
-    console.error(`API Error: ${endpoint}`, error);
-    return { success: false, error: 'Failed to fetch data' };
-  }
-}
 
 // =============================================================================
 // DASHBOARD APIs (NEW)
