@@ -14,7 +14,7 @@ import { createAgent } from '@/lib/api';
 import { AgentType } from '@/types';
 import { useSession } from '@/contexts/SessionContext';
 import { TierType, ArenaType } from '@/types';
-import { Check } from 'lucide-react';
+
 
 // ============================================================================
 // STEP INDICATOR - Shows progress through the wizard
