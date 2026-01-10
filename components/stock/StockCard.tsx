@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Users, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import { Stock } from '@/types';
 import { TypeBadge, Avatar } from '@/components/ui';
+import TierBadge from '@/components/ui/TierBadge';
 import { formatPrice, formatNumber } from '@/lib/api';
 
 export default function StockCard({ stock }: { stock: Stock }) {
@@ -20,6 +21,7 @@ export default function StockCard({ stock }: { stock: Stock }) {
           <div>
             <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors">{stock.name}</h3>
             <TypeBadge type={stock.type} category={category} />
+            {stock.tier && <TierBadge tier={stock.tier} size="sm" />}
           </div>
         </div>
         
