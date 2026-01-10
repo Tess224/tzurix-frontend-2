@@ -20,9 +20,9 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
   const steps = [
     'Connect Wallet',
     'Agent Details', 
+    'Tier Selection',
+    'Decision Interface',
     'Register Wallets',
-    'Social Accounts',
-    'Verification',
     'Review & Pay',
     'Success'
   ];
@@ -259,6 +259,310 @@ function Step2AgentDetails({
     </div>
   );
 }
+
+// ============================================================================
+// STEP 3: TIER SELECTION (NEW)
+// ============================================================================
+function Step3TierSelection({
+  selectedTier,
+  onSelect,
+  onNext,
+  onBack
+}: {
+  selectedTier: TierType;
+  onSelect: (tier: TierType) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const tierOptions = [
+    {
+      id: 'alpha',
+      name: 'Alpha',
+      emoji: '🛡️',
+      maxScore: 75,
+      difficulty: 'Standard',
+      description: 'Recommended for new agents. Standard scenarios with 75 max score ceiling.',
+      features: ['Standard difficulty scenarios', 'Max score: 75', 'Best for testing strategies'],
+    },
+    {
+      id: 'beta',
+      name: 'Beta',
+      emoji: '⚔️',
+      maxScore: 90,
+      difficulty: 'Advanced',
+      description: 'For proven agents. Harder scenarios but higher score ceiling.',
+      features: ['Advanced scenarios', 'Max score: 90', '50% score carry on upgrade'],
+    },
+    {
+      id: 'omega',
+      name: 'Omega',
+      emoji: '👑',
+      maxScore: 100,
+      difficulty: 'Elite',
+      description: 'For elite agents. Extreme scenarios with maximum potential.',
+      features: ['Extreme difficulty', 'Max score: 100', 'Highest risk/reward'],
+    },
+  ];
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-2">Select Arena Tier</h2>
+      <p className="text-slate-400 mb-8">
+        Choose the difficulty tier for your agent. Higher tiers have harder scenarios
+        but higher score ceilings. You can upgrade later (with 50% score carry).
+      </p>
+
+      <div className="space-y-4 mb-8">
+        {tierOptions.map((tier) => (
+          <button
+            key={tier.id}
+            onClick={() => onSelect(tier.id as TierType)}
+            className={`w-full p-6 rounded-xl border-2 text-left transition-all ${
+              selectedTier === tier.id
+                ? 'border-cyan-500 bg-cyan-500/10'
+                : 'border-white/10 bg-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">{tier.emoji}</span>
+                  <span className="text-xl font-bold">{tier.name}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    tier.id === 'alpha' ? 'bg-cyan-500/20 text-cyan-400' :
+                    tier.id === 'beta' ? 'bg-purple-500/20 text-purple-400' :
+                    'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    {tier.difficulty}
+                  </span>
+                </div>
+                <p className="text-slate-400 text-sm mb-3">{tier.description}</p>
+                <ul className="space-y-1">
+                  {tier.features.map((feature, i) => (
+                    <li key={i} className="text-xs text-slate-500 flex items-center gap-2">
+                      <Check size={12} className="text-cyan-400" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Max Score</p>
+                <p className="text-2xl font-bold">{tier.maxScore}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Info box */}
+      <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-8">
+        <div className="flex items-start gap-3">
+          <AlertCircle size={18} className="text-cyan-400 mt-0.5" />
+          <div className="text-sm">
+            <p className="text-cyan-400 font-medium">Recommendation</p>
+            <p className="text-slate-400 mt-1">
+              Start with Alpha tier to test your agent's strategy. You can upgrade
+              to Beta or Omega later once your agent proves itself.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        <button onClick={onBack} className="btn-secondary inline-flex items-center gap-2">
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        <button onClick={onNext} className="btn-primary inline-flex items-center gap-2">
+          Continue
+          <ArrowRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+            }
+
+// ============================================================================
+// STEP 4: DECISION INTERFACE (NEW)
+// ============================================================================
+function Step4DecisionInterface({
+  interfaceCode,
+  onChange,
+  onNext,
+  onBack
+}: {
+  interfaceCode: string;
+  onChange: (code: string) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const [error, setError] = useState('');
+
+  // Default template
+  const defaultTemplate = `def decide(market_data: dict, portfolio: dict) -> dict:
+    """
+    Make a trading decision based on market data.
+    
+    Args:
+        market_data: {'symbol', 'price', 'volume_24h', 'price_change_24h'}
+        portfolio: {'balance_sol', 'positions': [...]}
+    
+    Returns:
+        {'action': 'buy'|'sell'|'hold', 'amount': float, 'reason': str}
+    """
+    # Simple momentum strategy example
+    if market_data['price_change_24h'] > 5:
+        return {
+            'action': 'buy',
+            'amount': portfolio['balance_sol'] * 0.1,
+            'reason': 'Strong upward momentum'
+        }
+    elif market_data['price_change_24h'] < -5:
+        return {
+            'action': 'sell',
+            'amount': 0.5,  # Sell 50% of position
+            'reason': 'Downward momentum, reducing exposure'
+        }
+    return {'action': 'hold', 'reason': 'No clear signal'}
+`;
+
+  const handleUseTemplate = () => {
+    onChange(defaultTemplate);
+  };
+
+  const validateCode = () => {
+    if (!interfaceCode.trim()) {
+      setError('Please provide your decision interface code');
+      return false;
+    }
+    if (!interfaceCode.includes('def decide(')) {
+      setError('Code must contain a decide(market_data, portfolio) function');
+      return false;
+    }
+    if (!interfaceCode.includes('return')) {
+      setError('Function must return a decision object');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateCode()) {
+      onNext();
+    }
+  };
+
+  const handleSkip = () => {
+    onChange(''); // Clear interface
+    onNext();
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-2">Decision Interface</h2>
+      <p className="text-slate-400 mb-6">
+        Upload your agent's decision logic. This code runs in our secure sandbox
+        during daily arena testing to calculate your performance score.
+      </p>
+
+      {/* Info box */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+        <div className="flex items-start gap-3">
+          <AlertCircle size={18} className="text-amber-400 mt-0.5" />
+          <div className="text-sm">
+            <p className="text-amber-400 font-medium">Important</p>
+            <p className="text-slate-400 mt-1">
+              Without a decision interface, your agent cannot participate in arena
+              testing and will start with a static score. You can add it later from
+              your dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Template button */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={handleUseTemplate}
+          className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+        >
+          Use example template
+        </button>
+      </div>
+
+      {/* Code editor */}
+      <div className="relative mb-4">
+        <textarea
+          value={interfaceCode}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setError('');
+          }}
+          placeholder="# Paste your decide() function here..."
+          className={`w-full h-80 bg-[#0a0f1a] border rounded-xl p-4 font-mono text-sm 
+            focus:outline-none focus:border-cyan-500/50 resize-none
+            ${error ? 'border-red-500/50' : 'border-white/10'}`}
+          spellCheck={false}
+        />
+        {interfaceCode && (
+          <div className="absolute top-2 right-2">
+            <span className="text-xs text-slate-500">
+              {interfaceCode.split('\n').length} lines
+            </span>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-red-400 text-sm mb-4 flex items-center gap-2">
+          <AlertCircle size={14} />
+          {error}
+        </p>
+      )}
+
+      {/* Validation checklist */}
+      <div className="bg-white/5 rounded-xl p-4 mb-8">
+        <p className="text-sm font-medium mb-2">Requirements:</p>
+        <ul className="space-y-1 text-sm">
+          <li className={`flex items-center gap-2 ${
+            interfaceCode.includes('def decide(') ? 'text-emerald-400' : 'text-slate-500'
+          }`}>
+            {interfaceCode.includes('def decide(') ? <Check size={14} /> : <span className="w-3.5" />}
+            Contains decide(market_data, portfolio) function
+          </li>
+          <li className={`flex items-center gap-2 ${
+            interfaceCode.includes('return') ? 'text-emerald-400' : 'text-slate-500'
+          }`}>
+            {interfaceCode.includes('return') ? <Check size={14} /> : <span className="w-3.5" />}
+            Returns a decision object
+          </li>
+        </ul>
+      </div>
+
+      <div className="flex justify-between">
+        <button onClick={onBack} className="btn-secondary inline-flex items-center gap-2">
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleSkip} 
+            className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+          >
+            Skip for now
+          </button>
+          <button onClick={handleNext} className="btn-primary inline-flex items-center gap-2">
+            Continue
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+    }
+
 
 // ============================================================================
 // STEP 3: REGISTER WALLETS
@@ -778,8 +1082,12 @@ export default function CreateAgentPage() {
   const [agentData, setAgentData] = useState({
     name: '',
     type: 'trading' as AgentType,
-    description: ''
+    description: '',
+    tier: 'alpha' as TierType,
+    arenaType: 'trading' as ArenaType,
+    keywords: [] as string[],
   });
+  const [interfaceCode, setInterfaceCode] = useState('');
   const [wallets, setWallets] = useState<string[]>([]);
   const [socials, setSocials] = useState({
     twitter: '',
