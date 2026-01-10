@@ -21,7 +21,9 @@ export default function StockCard({ stock }: { stock: Stock }) {
           <div>
             <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors">{stock.name}</h3>
             <TypeBadge type={stock.type} category={category} />
-            {stock.tier && <TierBadge tier={stock.tier} size="sm" />}
+            {stock.category === 'agent' && 'tier' in stock && (
+  <TierBadge tier={stock.tier} size="sm" />
+)}
           </div>
         </div>
         
