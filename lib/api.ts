@@ -11,6 +11,7 @@ import {
   FilterOptions
 } from '@/types';
 import { getSessionId, getWalletAddress } from './session';
+import type { DashboardData } from '@/types';
 
 // =============================================================================
 // CONFIGURATION
