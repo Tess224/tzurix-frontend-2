@@ -1132,6 +1132,7 @@ export default function CreateAgentPage() {
         tier: agentData.tier,
         arena_type: agentData.arenaType,
         interface_code: interfaceCode || undefined,
+        socials,
       });
     
       if (result.success && result.agent) {
@@ -1217,6 +1218,7 @@ export default function CreateAgentPage() {
             agentData={agentData}
             wallets={wallets}
             interfaceCode={interfaceCode}
+            socials={socials}
             onSubmit={handleSubmit}
             onBack={() => setCurrentStep(5)}
             isSubmitting={isSubmitting}
