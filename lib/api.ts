@@ -10,6 +10,7 @@ import {
   AgentType,
   FilterOptions
 } from '@/types';
+import { getSessionId, getWalletAddress } from './session';
 
 // =============================================================================
 // CONFIGURATION
@@ -41,6 +42,173 @@ async function fetchApi<T>(
     return { success: false, error: 'Failed to fetch data' };
   }
 }
+
+// =============================================================================
+// SESSION HEADER HELPER
+// =============================================================================
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  const sessionId = getSessionId();
+  const wallet = getWalletAddress();
+  
+  if (sessionId) {
+    headers['X-Session-ID'] = sessionId;
+  }
+  if (wallet) {
+    headers['X-Wallet-Address'] = wallet;
+  }
+  
+  return headers;
+}
+
+// Update fetchApi to use auth headers
+async function fetchApi<T>(
+  endpoint: string, 
+  options?: RequestInit
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        ...getAuthHeaders(),
+        ...options?.headers,
+      },
+    });
+    const data = await response.json();
+    return { success: data.success !== false, data };
+  } catch (error) {
+    console.error(`API Error: ${endpoint}`, error);
+    return { success: false, error: 'Failed to fetch data' };
+  }
+}
+
+// =============================================================================
+// DASHBOARD APIs (NEW)
+// =============================================================================
+
+/**
+ * Get creator dashboard data
+ */
+export async function getCreatorDashboard(
+  creatorWallet: string
+): Promise<DashboardData | null> {
+  const response = await fetchApi<DashboardData>(
+    `/api/user/${creatorWallet}/dashboard`
+  );
+  return response.data || null;
+}
+
+/**
+ * Get agents created by a wallet
+ */
+export async function getCreatedAgents(
+  creatorWallet: string
+): Promise<CreatorAgent[]> {
+  const response = await fetchApi<{ agents: CreatorAgent[] }>(
+    `/api/user/${creatorWallet}/created-agents`
+  );
+  return response.data?.agents || [];
+}
+
+// =============================================================================
+// ARENA APIs (NEW)
+// =============================================================================
+
+/**
+ * Get arena status for an agent
+ */
+export async function getAgentArenaStatus(
+  agentId: number | string
+): Promise<ArenaStatus | null> {
+  const response = await fetchApi<ArenaStatus>(`/api/agents/${agentId}/arena`);
+  return response.data || null;
+}
+
+/**
+ * Get arena results history for an agent
+ */
+export async function getAgentArenaResults(
+  agentId: number | string,
+  limit: number = 10
+): Promise<ArenaResult[]> {
+  const response = await fetchApi<{ results: ArenaResult[] }>(
+    `/api/agents/${agentId}/arena/results?limit=${limit}`
+  );
+  return response.data?.results || [];
+}
+
+/**
+ * Upload decision interface for an agent
+ */
+export async function uploadAgentInterface(
+  agentId: number,
+  interfaceCode: string,
+  creatorWallet: string
+): Promise<{ success: boolean; error?: string; version?: number }> {
+  const response = await fetchApi<{ 
+    success: boolean; 
+    interface_version: number;
+    error?: string;
+  }>(`/api/agents/${agentId}/interface`, {
+    method: 'POST',
+    body: JSON.stringify({
+      interface_code: interfaceCode,
+      creator_wallet: creatorWallet,
+    }),
+  });
+  
+  if (response.success && response.data) {
+    return { 
+      success: true, 
+      version: response.data.interface_version 
+    };
+  }
+  return { success: false, error: response.error || response.data?.error };
+}
+
+// =============================================================================
+// TIER APIs (NEW)
+// =============================================================================
+
+/**
+ * Get all tier configurations
+ */
+export async function getTiers(): Promise<Record<string, TierInfo>> {
+  const response = await fetchApi<{ tiers: Record<string, TierInfo> }>('/api/tiers');
+  return response.data?.tiers || {};
+}
+
+/**
+ * Change agent tier
+ */
+export async function changeAgentTier(
+  agentId: number,
+  newTier: TierType,
+  creatorWallet: string
+): Promise<{ success: boolean; error?: string; new_score?: number }> {
+  const response = await fetchApi<{
+    success: boolean;
+    new_score: number;
+    old_score: number;
+    error?: string;
+  }>(`/api/agents/${agentId}/tier`, {
+    method: 'POST',
+    body: JSON.stringify({
+      tier: newTier,
+      creator_wallet: creatorWallet,
+    }),
+  });
+  
+  if (response.success && response.data) {
+    return { success: true, new_score: response.data.new_score };
+  }
+  return { success: false, error: response.error || response.data?.error };
+}
+
 
 // =============================================================================
 // AGENT APIs
@@ -93,6 +261,10 @@ export interface CreateAgentParams {
   creator_wallet: string;
   type?: AgentType;
   category?: 'agent' | 'individual';
+  tier?: TierType;
+  arena_type?: ArenaType;
+  keywords?: string[];
+  interface_code?: string;
 }
 
 export interface CreateAgentResult {
@@ -115,6 +287,10 @@ export async function createAgent(params: CreateAgentParams): Promise<CreateAgen
       creator_wallet: params.creator_wallet,
       type: params.type || 'trading',
       category: params.category || 'agent',
+      tier: params.tier || 'alpha',
+      arena_type: params.arena_type || 'trading',
+      keywords: params.keywords || [],
+      interface_code: params.interface_code,
     }),
   });
   
