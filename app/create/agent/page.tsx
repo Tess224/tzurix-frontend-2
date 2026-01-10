@@ -892,12 +892,14 @@ function Step6ReviewPay({
   agentData,
   wallets,
   socials,
+  interfaceCode,
   onSubmit,
   onBack,
   isSubmitting
 }: {
-  agentData: { name: string; type: AgentType; description: string };
+  agentData: { name: string; type: AgentType; description: string; tier: TierType; arenaType: ArenaType; keywords: string[]; };
   wallets: string[];
+  interfaceCode: string;
   socials: { twitter: string; github: string; website: string };
   onSubmit: () => void;
   onBack: () => void;
