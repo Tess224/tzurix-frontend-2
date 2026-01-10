@@ -58,6 +58,25 @@ export interface AgentStock {
   // Timestamps
   created_at: string | null;
   updated_at: string | null;
+  
+  // NEW: Tier fields
+  tier: TierType;
+  tier_info?: TierInfo;
+  score_ceiling?: number;
+  
+  // NEW: Arena fields
+  arena_type: ArenaType;
+  has_interface: boolean;
+  interface_validated: boolean;
+  keywords?: string[];
+  
+  // NEW: UPI breakdown (for utility/coding)
+  effectiveness_score?: number;
+  efficiency_score?: number;
+  autonomy_score?: number;
+  
+  // NEW: Last arena run
+  last_arena_run?: string;
 }
 
 // =============================================================================
@@ -271,6 +290,105 @@ export interface WalletScoreResult {
   using_real_data: boolean;
   metrics: WalletMetrics;
 }
+
+// =============================================================================
+// TIER TYPES
+// =============================================================================
+
+export type TierType = 'alpha' | 'beta' | 'omega';
+
+export interface TierInfo {
+  name: string;
+  emoji: string;
+  difficulty: string;
+  max_score: number;
+}
+
+// =============================================================================
+// ARENA TYPES
+// =============================================================================
+
+export type ArenaType = 'trading' | 'utility' | 'coding';
+
+export interface ArenaResult {
+  id: number;
+  agent_id: number;
+  arena_type: ArenaType;
+  score: number;
+  raw_score: number;
+  effectiveness?: number;
+  efficiency?: number;
+  autonomy?: number;
+  templates_run: string[];
+  template_scores: Record<string, number>;
+  execution_time_ms: number;
+  errors: string[];
+  created_at: string;
+}
+
+export interface ArenaStatus {
+  agent_id: number;
+  agent_name: string;
+  arena_type: ArenaType;
+  keywords: string[];
+  tier: TierType;
+  tier_info: TierInfo;
+  current_score: number;
+  score_ceiling: number;
+  upi_breakdown?: {
+    effectiveness: number;
+    efficiency: number;
+    autonomy: number;
+  };
+  last_arena_run: string | null;
+  has_interface: boolean;
+  interface_validated: boolean;
+  interface_version: number;
+  arena_status: 'ready' | 'pending_validation' | 'needs_interface';
+  message: string;
+}
+
+// =============================================================================
+// DASHBOARD TYPES
+// =============================================================================
+
+export interface CreatorAgent {
+  id: number;
+  name: string;
+  type: AgentType;
+  arena_type: ArenaType;
+  tier: TierType;
+  tier_info: TierInfo;
+  current_score: number;
+  previous_score: number;
+  score_ceiling: number;
+  has_interface: boolean;
+  interface_validated: boolean;
+  arena_status: string;
+  last_arena_run: string | null;
+  holders: number;
+  volume_24h: number;
+  earnings_sol: number;
+  created_at: string;
+}
+
+export interface CreatorStats {
+  total_agents: number;
+  total_earnings_sol: number;
+  total_holders: number;
+  total_volume: number;
+  best_performer: {
+    id: number;
+    name: string;
+    score: number;
+  } | null;
+}
+
+export interface DashboardData {
+  agents: CreatorAgent[];
+  stats: CreatorStats;
+  recent_arena_results: ArenaResult[];
+  }
 
 // =============================================================================
 // UI HELPER TYPES
