@@ -48,15 +48,16 @@ export const INDIVIDUAL_TYPES = {
 } as const;
 
 // =============================================================================
-// NAVIGATION
+// UPDATED NAV LINKS
 // =============================================================================
 
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
+  { href: '/agents', label: 'Agents' },
+  { href: '/individuals', label: 'Individuals' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/portfolio', label: 'Portfolio' },
-  { href: '/predictions', label: 'Predictions' },
-  { href: '/create', label: 'Create' },
-] as const;
+];
 
 // =============================================================================
 // SORT & FILTER OPTIONS
@@ -211,18 +212,6 @@ def decide(market_data: dict, portfolio: dict) -> dict:
     # Your decision logic here
     return {'action': 'hold', 'reason': 'Default implementation'}
 `;
-
-// =============================================================================
-// UPDATED NAV LINKS
-// =============================================================================
-
-export const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/agents', label: 'Agents' },
-  { href: '/individuals', label: 'Individuals' },
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/portfolio', label: 'Portfolio' },
-];
 
 // =============================================================================
 // HELPER FUNCTIONS (NEW)
