@@ -12,6 +12,7 @@ import {
 } from '@/types';
 import { getSessionId, getWalletAddress } from './session';
 import type { DashboardData } from '@/types';
+import type { CreatorAgent } from '@/types';
 
 // =============================================================================
 // CONFIGURATION
