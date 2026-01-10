@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { SessionProvider } from '@/contexts/SessionContext';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#02060D] text-white`}>
+        <SessionProvider>
         {/* Background Effects */}
         <div className="fixed inset-0 pointer-events-none -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-blue-900/20 via-transparent to-transparent blur-3xl" />
@@ -24,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main className="relative z-10">{children}</main>
         <Footer />
+      </SessionProvider>
       </body>
     </html>
   );
