@@ -3,6 +3,8 @@
 import { Bot, User, TrendingUp, TrendingDown, Users, BarChart3, Clock, Zap } from 'lucide-react';
 import { AgentType, IndividualType, StockCategory } from '@/types';
 import { getAgentTypeColor, getAgentTypeLabel, formatNumber, formatPercent } from '@/lib/api';
+// Option 1: From the barrel file (consistent with your other components)
+import { TierBadge, StatusBadge } from '@/components/ui';
 
 // =============================================================================
 // LOADING SPINNER
