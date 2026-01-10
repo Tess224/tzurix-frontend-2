@@ -1165,61 +1165,55 @@ export default function CreateAgentPage() {
       )}
       
       <div className="glass-panel p-8">
+        // In the main component, update step rendering
         {currentStep === 1 && (
-          <Step1ConnectWallet onNext={nextStep} />
+          <Step1ConnectWallet onNext={() => setCurrentStep(2)} />
         )}
-        
         {currentStep === 2 && (
           <Step2AgentDetails
             data={agentData}
             onChange={handleAgentDataChange}
-            onNext={nextStep}
-            onBack={prevStep}
+            onNext={() => setCurrentStep(3)}
+            onBack={() => setCurrentStep(1)}
           />
         )}
-        
         {currentStep === 3 && (
-          <Step3RegisterWallets
+          <Step3TierSelection
+            selectedTier={agentData.tier}
+            onSelect={(tier) => handleAgentDataChange('tier', tier)}
+            onNext={() => setCurrentStep(4)}
+            onBack={() => setCurrentStep(2)}
+          />
+        )}
+        {currentStep === 4 && (
+          <Step4DecisionInterface
+            interfaceCode={interfaceCode}
+            onChange={setInterfaceCode}
+            onNext={() => setCurrentStep(5)}
+            onBack={() => setCurrentStep(3)}
+          />
+        )}
+        {currentStep === 5 && (
+          <Step3RegisterWallets  // Renamed from original step 3
             wallets={wallets}
             onAddWallet={handleAddWallet}
             onRemoveWallet={handleRemoveWallet}
-            onNext={nextStep}
-            onBack={prevStep}
+            onNext={() => setCurrentStep(6)}
+            onBack={() => setCurrentStep(4)}
           />
         )}
-        
-        {currentStep === 4 && (
-          <Step4SocialAccounts
-            socials={socials}
-            onChange={handleSocialsChange}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
-        
-        {currentStep === 5 && (
-          <Step5Verification
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
-        
         {currentStep === 6 && (
-          <Step6ReviewPay
+          <Step6ReviewPay  // Updated review step
             agentData={agentData}
             wallets={wallets}
-            socials={socials}
+            interfaceCode={interfaceCode}
             onSubmit={handleSubmit}
-            onBack={prevStep}
+            onBack={() => setCurrentStep(5)}
             isSubmitting={isSubmitting}
           />
         )}
-        
         {currentStep === 7 && (
-          <Step7Success
-            agentName={agentData.name}
-            agentId={createdAgentId}
-          />
+          <Step7Success agentId={createdAgentId} agentName={agentData.name} />
         )}
       </div>
     </div>
