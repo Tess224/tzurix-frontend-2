@@ -421,3 +421,10 @@ export function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
     </div>
   );
 }
+
+// =============================================================================
+// RE-EXPORTS FROM SEPARATE FILES
+// =============================================================================
+
+export { default as TierBadge } from './TierBadge';
+export { default as StatusBadge } from './StatusBadge';
