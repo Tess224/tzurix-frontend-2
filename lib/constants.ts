@@ -88,6 +88,143 @@ export const EXTERNAL_LINKS = {
 } as const;
 
 // =============================================================================
+// TIER SYSTEM
+// =============================================================================
+
+export const TIERS = {
+  alpha: {
+    id: 'alpha',
+    name: 'Alpha',
+    emoji: '🛡️',
+    difficulty: 'Standard',
+    maxScore: 75,
+    description: 'Standard difficulty - recommended for new agents',
+    color: 'cyan',
+    bgClass: 'bg-cyan-500/10',
+    borderClass: 'border-cyan-500/30',
+    textClass: 'text-cyan-400',
+  },
+  beta: {
+    id: 'beta',
+    name: 'Beta',
+    emoji: '⚔️',
+    difficulty: 'Advanced',
+    maxScore: 90,
+    description: 'Advanced difficulty - harder scenarios, higher ceiling',
+    color: 'purple',
+    bgClass: 'bg-purple-500/10',
+    borderClass: 'border-purple-500/30',
+    textClass: 'text-purple-400',
+  },
+  omega: {
+    id: 'omega',
+    name: 'Omega',
+    emoji: '👑',
+    difficulty: 'Elite',
+    maxScore: 100,
+    description: 'Elite difficulty - extreme scenarios, maximum potential',
+    color: 'amber',
+    bgClass: 'bg-amber-500/10',
+    borderClass: 'border-amber-500/30',
+    textClass: 'text-amber-400',
+  },
+} as const;
+
+export type TierType = keyof typeof TIERS;
+
+// =============================================================================
+// ARENA TYPES
+// =============================================================================
+
+export const ARENA_TYPES = {
+  trading: {
+    id: 'trading',
+    name: 'Trading Arena',
+    description: 'Historical market scenario testing',
+    icon: 'LineChart',
+    requiredAgentTypes: ['trading', 'defi'],
+  },
+  utility: {
+    id: 'utility',
+    name: 'Utility Arena',
+    description: 'Productivity task testing (scheduling, email, task tracking)',
+    icon: 'Wrench',
+    requiredAgentTypes: ['utility', 'social'],
+  },
+  coding: {
+    id: 'coding',
+    name: 'Coding Arena',
+    description: 'Code challenge testing (bug fixing, features, optimization)',
+    icon: 'Code',
+    requiredAgentTypes: ['coding'],
+  },
+} as const;
+
+export type ArenaType = keyof typeof ARENA_TYPES;
+
+// =============================================================================
+// SCORING CONSTANTS (V1)
+// =============================================================================
+
+export const SCORING = {
+  STARTING_SCORE: 20,
+  MIN_SCORE: 1,
+  MAX_SCORE: 100,
+  DAILY_POINT_CAP: 5,
+  PRICE_PER_POINT: 0.0001, // $0.0001 per point
+  DECAY_THRESHOLD_DAYS: 7,
+  DECAY_RATE: 1, // points per week
+} as const;
+
+// =============================================================================
+// INTERFACE TEMPLATES
+// =============================================================================
+
+export const INTERFACE_TEMPLATE = `# Agent Decision Interface
+# Your agent must implement the decide() function
+
+def decide(market_data: dict, portfolio: dict) -> dict:
+    """
+    Make a trading decision based on market data and current portfolio.
+    
+    Args:
+        market_data: {
+            'symbol': str,
+            'price': float,
+            'volume_24h': float,
+            'price_change_24h': float,
+            'timestamp': int
+        }
+        portfolio: {
+            'balance_sol': float,
+            'positions': [{'symbol': str, 'amount': float, 'avg_price': float}]
+        }
+    
+    Returns:
+        {
+            'action': 'buy' | 'sell' | 'hold',
+            'symbol': str (if buy/sell),
+            'amount': float (if buy/sell),
+            'reason': str (optional, for logging)
+        }
+    """
+    # Your decision logic here
+    return {'action': 'hold', 'reason': 'Default implementation'}
+`;
+
+// =============================================================================
+// UPDATED NAV LINKS
+// =============================================================================
+
+export const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/agents', label: 'Agents' },
+  { href: '/individuals', label: 'Individuals' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/portfolio', label: 'Portfolio' },
+];
+
+// =============================================================================
 // HELPER FUNCTIONS (NEW)
 // =============================================================================
 
