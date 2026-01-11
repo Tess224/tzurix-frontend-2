@@ -247,7 +247,7 @@ function ArenaResultsTable({ results }: { results: ArenaResult[] }) {
   if (results.length === 0) {
     return (
       <div className="text-center py-8 text-slate-500">
-        No arena results yet. Upload an interface to start testing.
+        No arena results yet. Connect GitHub to start testing.
       </div>
     );
   }
