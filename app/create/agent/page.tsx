@@ -11,9 +11,8 @@ import {
 import TzurixLogo from '@/components/ui/TzurixLogo';
 import { AGENT_TYPES } from '@/lib/constants';
 import { createAgent } from '@/lib/api';
-import { AgentType } from '@/types';
+import { AgentType, TierType, ArenaType } from '@/types';
 import { useSession } from '@/contexts/SessionContext';
-import { TierType, ArenaType } from '@/types';
 
 
 // ============================================================================
@@ -24,7 +23,7 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
     'Connect Wallet',
     'Agent Details', 
     'Tier Selection',
-    'Decision Interface',
+    'GitHub Repository',
     'Register Wallets',
     'Review & Pay',
     'Success'
@@ -68,17 +67,10 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
 // STEP 1: CONNECT WALLET
 // ============================================================================
 function Step1ConnectWallet({ onNext }: { onNext: () => void }) {
-  const [connecting, setConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
+  const { isConnected, walletAddress, connect, isLoading } = useSession();
   
   const handleConnect = async () => {
-    setConnecting(true);
-    // Simulate wallet connection
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setWalletAddress('7jDVmS8HBdDNdtGXSxepjcktvG6FzbPurZvYUVgY7TG5');
-    setConnected(true);
-    setConnecting(false);
+    await connect();
   };
   
   return (
@@ -93,13 +85,13 @@ function Step1ConnectWallet({ onNext }: { onNext: () => void }) {
         This wallet will be the creator wallet and receive trading fees.
       </p>
       
-      {!connected ? (
+      {!isConnected ? (
         <button
           onClick={handleConnect}
-          disabled={connecting}
+          disabled={isLoading}
           className="btn-primary inline-flex items-center gap-2"
         >
-          {connecting ? (
+          {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
               Connecting...
@@ -107,7 +99,7 @@ function Step1ConnectWallet({ onNext }: { onNext: () => void }) {
           ) : (
             <>
               <Wallet size={18} />
-              Connect Phantom Wallet
+              Connect Wallet
             </>
           )}
         </button>
@@ -264,7 +256,7 @@ function Step2AgentDetails({
 }
 
 // ============================================================================
-// STEP 3: TIER SELECTION (NEW)
+// STEP 3: TIER SELECTION
 // ============================================================================
 function Step3TierSelection({
   selectedTier,
@@ -365,7 +357,7 @@ function Step3TierSelection({
           <div className="text-sm">
             <p className="text-cyan-400 font-medium">Recommendation</p>
             <p className="text-slate-400 mt-1">
-              Start with Alpha tier to test your agent's strategy. You can upgrade
+              Start with Alpha tier to test your agent&apos;s strategy. You can upgrade
               to Beta or Omega later once your agent proves itself.
             </p>
           </div>
@@ -384,90 +376,75 @@ function Step3TierSelection({
       </div>
     </div>
   );
-            }
+}
 
 // ============================================================================
-// STEP 4: DECISION INTERFACE (NEW)
+// STEP 4: GITHUB REPOSITORY
 // ============================================================================
-function Step4DecisionInterface({
-  interfaceCode,
+function Step4GithubRepository({
+  githubRepo,
   onChange,
   onNext,
   onBack
 }: {
-  interfaceCode: string;
-  onChange: (code: string) => void;
+  githubRepo: { url: string; branch: string; entryFile: string };
+  onChange: (repo: { url: string; branch: string; entryFile: string }) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
-  const [error, setError] = useState('');
+  const [validation, setValidation] = useState<{
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
-  // Default template
-  const defaultTemplate = `def decide(market_data: dict, portfolio: dict) -> dict:
-    """
-    Make a trading decision based on market data.
+  const handleValidate = async () => {
+    if (!githubRepo.url) {
+      setValidation({ valid: false, errors: ['Please enter a GitHub URL'], warnings: [] });
+      return;
+    }
+
+    if (!githubRepo.url.startsWith('https://github.com/')) {
+      setValidation({ valid: false, errors: ['URL must start with https://github.com/'], warnings: [] });
+      return;
+    }
+
+    setIsValidating(true);
     
-    Args:
-        market_data: {'symbol', 'price', 'volume_24h', 'price_change_24h'}
-        portfolio: {'balance_sol', 'positions': [...]}
+    // Simulate validation (in production, this would call the backend)
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    Returns:
-        {'action': 'buy'|'sell'|'hold', 'amount': float, 'reason': str}
-    """
-    # Simple momentum strategy example
-    if market_data['price_change_24h'] > 5:
-        return {
-            'action': 'buy',
-            'amount': portfolio['balance_sol'] * 0.1,
-            'reason': 'Strong upward momentum'
-        }
-    elif market_data['price_change_24h'] < -5:
-        return {
-            'action': 'sell',
-            'amount': 0.5,  # Sell 50% of position
-            'reason': 'Downward momentum, reducing exposure'
-        }
-    return {'action': 'hold', 'reason': 'No clear signal'}
-`;
-
-  const handleUseTemplate = () => {
-    onChange(defaultTemplate);
-  };
-
-  const validateCode = () => {
-    if (!interfaceCode.trim()) {
-      setError('Please provide your decision interface code');
-      return false;
+    // Basic URL structure check
+    const parts = githubRepo.url.replace('https://github.com/', '').split('/');
+    if (parts.length < 2 || !parts[0] || !parts[1]) {
+      setValidation({ 
+        valid: false, 
+        errors: ['Invalid repository URL format. Expected: https://github.com/username/repo'], 
+        warnings: [] 
+      });
+    } else {
+      setValidation({ 
+        valid: true, 
+        errors: [], 
+        warnings: ['Repository will be fully validated after creation'] 
+      });
     }
-    if (!interfaceCode.includes('def decide(')) {
-      setError('Code must contain a decide(market_data, portfolio) function');
-      return false;
-    }
-    if (!interfaceCode.includes('return')) {
-      setError('Function must return a decision object');
-      return false;
-    }
-    setError('');
-    return true;
-  };
-
-  const handleNext = () => {
-    if (validateCode()) {
-      onNext();
-    }
+    
+    setIsValidating(false);
   };
 
   const handleSkip = () => {
-    onChange(''); // Clear interface
+    onChange({ url: '', branch: 'main', entryFile: 'agent.py' });
     onNext();
   };
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-2">Decision Interface</h2>
+      <h2 className="text-2xl font-bold mb-2">Connect GitHub Repository</h2>
       <p className="text-slate-400 mb-6">
-        Upload your agent's decision logic. This code runs in our secure sandbox
-        during daily arena testing to calculate your performance score.
+        Link your agent&apos;s code repository for arena testing. Your code runs in our
+        secure sandbox to calculate performance scores.
       </p>
 
       {/* Info box */}
@@ -477,73 +454,130 @@ function Step4DecisionInterface({
           <div className="text-sm">
             <p className="text-amber-400 font-medium">Important</p>
             <p className="text-slate-400 mt-1">
-              Without a decision interface, your agent cannot participate in arena
-              testing and will start with a static score. You can add it later from
+              Without a GitHub repository, your agent cannot participate in arena
+              testing and will have a static score. You can connect it later from
               your dashboard.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Template button */}
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={handleUseTemplate}
-          className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-        >
-          Use example template
-        </button>
-      </div>
-
-      {/* Code editor */}
-      <div className="relative mb-4">
-        <textarea
-          value={interfaceCode}
+      {/* GitHub URL Input */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">
+          <Github size={16} className="inline mr-2" />
+          Repository URL
+        </label>
+        <input
+          type="url"
+          value={githubRepo.url}
           onChange={(e) => {
-            onChange(e.target.value);
-            setError('');
+            onChange({ ...githubRepo, url: e.target.value });
+            setValidation(null);
           }}
-          placeholder="# Paste your decide() function here..."
-          className={`w-full h-80 bg-[#0a0f1a] border rounded-xl p-4 font-mono text-sm 
-            focus:outline-none focus:border-cyan-500/50 resize-none
-            ${error ? 'border-red-500/50' : 'border-white/10'}`}
-          spellCheck={false}
+          placeholder="https://github.com/username/my-agent"
+          className="input-field"
         />
-        {interfaceCode && (
-          <div className="absolute top-2 right-2">
-            <span className="text-xs text-slate-500">
-              {interfaceCode.split('\n').length} lines
-            </span>
-          </div>
-        )}
+        <p className="text-xs text-slate-500 mt-1">
+          Must be a public GitHub repository
+        </p>
       </div>
 
-      {error && (
-        <p className="text-red-400 text-sm mb-4 flex items-center gap-2">
-          <AlertCircle size={14} />
-          {error}
-        </p>
+      {/* Advanced Options */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Branch</label>
+          <input
+            type="text"
+            value={githubRepo.branch}
+            onChange={(e) => onChange({ ...githubRepo, branch: e.target.value })}
+            placeholder="main"
+            className="input-field"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Entry File</label>
+          <input
+            type="text"
+            value={githubRepo.entryFile}
+            onChange={(e) => onChange({ ...githubRepo, entryFile: e.target.value })}
+            placeholder="agent.py"
+            className="input-field"
+          />
+        </div>
+      </div>
+
+      {/* Validate Button */}
+      {githubRepo.url && (
+        <button
+          onClick={handleValidate}
+          disabled={isValidating}
+          className="w-full mb-4 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+        >
+          {isValidating ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Validating...
+            </>
+          ) : (
+            <>
+              <Check size={18} />
+              Validate Repository
+            </>
+          )}
+        </button>
       )}
 
-      {/* Validation checklist */}
-      <div className="bg-white/5 rounded-xl p-4 mb-8">
-        <p className="text-sm font-medium mb-2">Requirements:</p>
-        <ul className="space-y-1 text-sm">
-          <li className={`flex items-center gap-2 ${
-            interfaceCode.includes('def decide(') ? 'text-emerald-400' : 'text-slate-500'
-          }`}>
-            {interfaceCode.includes('def decide(') ? <Check size={14} /> : <span className="w-3.5" />}
-            Contains decide(market_data, portfolio) function
-          </li>
-          <li className={`flex items-center gap-2 ${
-            interfaceCode.includes('return') ? 'text-emerald-400' : 'text-slate-500'
-          }`}>
-            {interfaceCode.includes('return') ? <Check size={14} /> : <span className="w-3.5" />}
-            Returns a decision object
-          </li>
-        </ul>
+      {/* Validation Status */}
+      {validation && (
+        <div className={`p-4 rounded-xl border mb-6 ${
+          validation.valid 
+            ? 'bg-emerald-500/10 border-emerald-500/30' 
+            : 'bg-red-500/10 border-red-500/30'
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            {validation.valid ? (
+              <CheckCircle2 className="text-emerald-400" size={20} />
+            ) : (
+              <AlertCircle className="text-red-400" size={20} />
+            )}
+            <span className={validation.valid ? 'text-emerald-400' : 'text-red-400'}>
+              {validation.valid ? 'Repository looks valid!' : 'Validation failed'}
+            </span>
+          </div>
+          {validation.errors.length > 0 && (
+            <ul className="text-sm text-red-400 list-disc list-inside">
+              {validation.errors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          )}
+          {validation.warnings.length > 0 && (
+            <ul className="text-sm text-amber-400 list-disc list-inside mt-2">
+              {validation.warnings.map((warn, i) => (
+                <li key={i}>{warn}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Help Text */}
+      <div className="bg-white/5 rounded-xl p-4 mb-6">
+        <p className="text-sm text-slate-400 mb-2">
+          Your repository must contain an entry file with a <code className="text-cyan-400 bg-black/30 px-1 rounded">decide()</code> function:
+        </p>
+        <pre className="text-xs text-slate-500 bg-black/30 p-3 rounded-lg overflow-x-auto">
+{`def decide(market_data: dict, portfolio: dict) -> dict:
+    return {
+        "action": "buy" | "sell" | "hold",
+        "amount": 0.0,
+        "reason": "explanation"
+    }`}
+        </pre>
       </div>
 
+      {/* Navigation */}
       <div className="flex justify-between">
         <button onClick={onBack} className="btn-secondary inline-flex items-center gap-2">
           <ArrowLeft size={18} />
@@ -556,21 +590,20 @@ function Step4DecisionInterface({
           >
             Skip for now
           </button>
-          <button onClick={handleNext} className="btn-primary inline-flex items-center gap-2">
-            Continue
+          <button onClick={onNext} className="btn-primary inline-flex items-center gap-2">
+            {githubRepo.url ? 'Continue' : 'Skip'}
             <ArrowRight size={18} />
           </button>
         </div>
       </div>
     </div>
   );
-    }
-
+}
 
 // ============================================================================
-// STEP 3: REGISTER WALLETS
+// STEP 5: REGISTER WALLETS
 // ============================================================================
-function Step3RegisterWallets({
+function Step5RegisterWallets({
   wallets,
   onAddWallet,
   onRemoveWallet,
@@ -730,183 +763,33 @@ function Step3RegisterWallets({
 }
 
 // ============================================================================
-// STEP 4: SOCIAL ACCOUNTS (Optional)
-// ============================================================================
-function Step4SocialAccounts({
-  socials,
-  onChange,
-  onNext,
-  onBack
-}: {
-  socials: { twitter: string; github: string; website: string };
-  onChange: (field: string, value: string) => void;
-  onNext: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-2">Social Accounts</h2>
-      <p className="text-slate-400 mb-8">
-        Connect social accounts to increase your agent&apos;s credibility. This step is optional.
-      </p>
-      
-      {/* Twitter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          <Twitter size={16} className="inline mr-2 text-blue-400" />
-          Twitter Handle
-        </label>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">@</span>
-          <input
-            type="text"
-            value={socials.twitter}
-            onChange={(e) => onChange('twitter', e.target.value)}
-            placeholder="youragent"
-            className="input-field pl-8"
-          />
-        </div>
-      </div>
-      
-      {/* GitHub */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          <Github size={16} className="inline mr-2" />
-          GitHub Repository
-        </label>
-        <input
-          type="text"
-          value={socials.github}
-          onChange={(e) => onChange('github', e.target.value)}
-          placeholder="https://github.com/your-repo"
-          className="input-field"
-        />
-      </div>
-      
-      {/* Website */}
-      <div className="mb-8">
-        <label className="block text-sm font-medium mb-2">
-          <Globe size={16} className="inline mr-2 text-emerald-400" />
-          Website
-        </label>
-        <input
-          type="text"
-          value={socials.website}
-          onChange={(e) => onChange('website', e.target.value)}
-          placeholder="https://youragent.com"
-          className="input-field"
-        />
-      </div>
-      
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <button onClick={onBack} className="btn-secondary inline-flex items-center gap-2">
-          <ArrowLeft size={18} />
-          Back
-        </button>
-        <button onClick={onNext} className="btn-primary inline-flex items-center gap-2">
-          {socials.twitter || socials.github || socials.website ? 'Continue' : 'Skip'}
-          <ArrowRight size={18} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// STEP 5: VERIFICATION (Optional)
-// ============================================================================
-function Step5Verification({
-  onNext,
-  onBack
-}: {
-  onNext: () => void;
-  onBack: () => void;
-}) {
-  const [verified, setVerified] = useState(false);
-  
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-2">Creator Verification</h2>
-      <p className="text-slate-400 mb-8">
-        Verify your identity to increase your credibility score. This is optional but recommended.
-      </p>
-      
-      {/* Gitcoin Passport */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center">
-            <Check className="text-emerald-400" size={24} />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold mb-1">Gitcoin Passport</h3>
-            <p className="text-sm text-slate-400 mb-4">
-              Connect your Gitcoin Passport to prove your humanity and boost your reputation score by up to 20%.
-            </p>
-            {!verified ? (
-              <button
-                onClick={() => setVerified(true)}
-                className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors text-sm font-medium"
-              >
-                Connect Gitcoin Passport
-              </button>
-            ) : (
-              <div className="inline-flex items-center gap-2 text-emerald-400">
-                <CheckCircle2 size={18} />
-                <span className="text-sm font-medium">Verified (Score: 24.5)</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Benefits */}
-      <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-8">
-        <p className="text-sm text-cyan-400 font-medium mb-2">Benefits of Verification:</p>
-        <ul className="text-sm text-slate-400 space-y-1">
-          <li>• Higher starting reputation score</li>
-          <li>• Verified badge on your agent&apos;s profile</li>
-          <li>• Increased trust from potential investors</li>
-        </ul>
-      </div>
-      
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <button onClick={onBack} className="btn-secondary inline-flex items-center gap-2">
-          <ArrowLeft size={18} />
-          Back
-        </button>
-        <button onClick={onNext} className="btn-primary inline-flex items-center gap-2">
-          {verified ? 'Continue' : 'Skip'}
-          <ArrowRight size={18} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
 // STEP 6: REVIEW & PAY
 // ============================================================================
 function Step6ReviewPay({
   agentData,
   wallets,
+  githubRepo,
   socials,
-  interfaceCode,
   onSubmit,
   onBack,
   isSubmitting
 }: {
-  agentData: { name: string; type: AgentType; description: string; tier: TierType; arenaType: ArenaType; keywords: string[]; };
+  agentData: { name: string; type: AgentType; description: string; tier: TierType; arenaType: ArenaType };
   wallets: string[];
-  interfaceCode: string;
-  socials: { twitter: string; github: string; website: string };
+  githubRepo: { url: string; branch: string; entryFile: string };
+  socials: { twitter: string; website: string };
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting: boolean;
 }) {
   const typeConfig = AGENT_TYPES[agentData.type];
   const TypeIcon = typeConfig?.icon || LineChart;
+  
+  const tierEmojis: Record<TierType, string> = {
+    alpha: '🛡️',
+    beta: '⚔️',
+    omega: '👑'
+  };
   
   return (
     <div>
@@ -923,9 +806,18 @@ function Step6ReviewPay({
           </div>
           <div>
             <h3 className="text-xl font-bold">{agentData.name}</h3>
-            <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border mt-1 ${typeConfig?.bg} ${typeConfig?.border} ${typeConfig?.color}`}>
-              <TypeIcon size={10} />
-              {typeConfig?.label}
+            <div className="flex items-center gap-2 mt-1">
+              <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${typeConfig?.bg} ${typeConfig?.border} ${typeConfig?.color}`}>
+                <TypeIcon size={10} />
+                {typeConfig?.label}
+              </div>
+              <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
+                agentData.tier === 'alpha' ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400' :
+                agentData.tier === 'beta' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400' :
+                'bg-amber-500/20 border-amber-500/30 text-amber-400'
+              }`}>
+                {tierEmojis[agentData.tier]} {agentData.tier.charAt(0).toUpperCase() + agentData.tier.slice(1)}
+              </div>
             </div>
           </div>
         </div>
@@ -939,16 +831,28 @@ function Step6ReviewPay({
           <span className="font-medium">{wallets.length} wallet(s)</span>
         </div>
         <div className="flex justify-between py-3 border-b border-white/10">
+          <span className="text-slate-400">GitHub Repository</span>
+          <span className="font-medium">
+            {githubRepo.url ? (
+              <a href={githubRepo.url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline flex items-center gap-1">
+                Connected <ExternalLink size={12} />
+              </a>
+            ) : (
+              <span className="text-slate-500">Not connected</span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between py-3 border-b border-white/10">
           <span className="text-slate-400">Twitter</span>
           <span className="font-medium">{socials.twitter ? `@${socials.twitter}` : 'Not connected'}</span>
         </div>
         <div className="flex justify-between py-3 border-b border-white/10">
           <span className="text-slate-400">Starting Score</span>
-          <span className="font-medium text-cyan-400">10</span>
+          <span className="font-medium text-cyan-400">20</span>
         </div>
         <div className="flex justify-between py-3 border-b border-white/10">
           <span className="text-slate-400">Starting Price</span>
-          <span className="font-medium">$0.10</span>
+          <span className="font-medium">$0.20</span>
         </div>
       </div>
       
@@ -969,7 +873,8 @@ function Step6ReviewPay({
       {/* Note */}
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-8">
         <p className="text-sm text-amber-400">
-          <strong>Note:</strong> Score updates daily starting tomorrow. Daily score changes are capped at ±10%.
+          <strong>Note:</strong> Score updates daily starting tomorrow. Daily score changes are capped at ±5 points.
+          {!githubRepo.url && ' Connect a GitHub repository to enable arena testing.'}
         </p>
       </div>
       
@@ -1069,8 +974,8 @@ function Step7Success({ agentName, agentId }: { agentName: string; agentId: numb
           View Agent Profile
           <ArrowRight size={18} />
         </Link>
-        <Link href="/" className="btn-secondary inline-flex items-center justify-center gap-2">
-          Back to Home
+        <Link href="/dashboard" className="btn-secondary inline-flex items-center justify-center gap-2">
+          Go to Dashboard
         </Link>
       </div>
     </div>
@@ -1081,43 +986,36 @@ function Step7Success({ agentName, agentId }: { agentName: string; agentId: numb
 // MAIN PAGE COMPONENT
 // ============================================================================
 export default function CreateAgentPage() {
-  const { session, isConnected, connect } = useSession();
+  const { session, isConnected } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Agent data state
   const [agentData, setAgentData] = useState({
     name: '',
     type: 'trading' as AgentType,
     description: '',
     tier: 'alpha' as TierType,
     arenaType: 'trading' as ArenaType,
-    keywords: [] as string[],
   });
+  
+  // GitHub repository state
   const [githubRepo, setGithubRepo] = useState({
     url: '',
     branch: 'main',
     entryFile: 'agent.py',
   });
-  const [githubValidation, setGithubValidation] = useState<{
-    valid: boolean;
-    errors: string[];
-    warnings: string[];
-  } | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
+  
+  // Other state
   const [wallets, setWallets] = useState<string[]>([]);
   const [socials, setSocials] = useState({
     twitter: '',
-    github: '',
     website: ''
   });
   const [createdAgentId, setCreatedAgentId] = useState<number>(0);
   
   const handleAgentDataChange = (field: string, value: string) => {
     setAgentData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  const handleSocialsChange = (field: string, value: string) => {
-    setSocials(prev => ({ ...prev, [field]: value }));
   };
   
   const handleAddWallet = (address: string) => {
@@ -1132,16 +1030,17 @@ export default function CreateAgentPage() {
     setIsSubmitting(true);
   
     try {
-      // Use the first wallet as the agent's main wallet
       const result = await createAgent({
         wallet_address: wallets[0],
         name: agentData.name,
         description: agentData.description,
-        creator_wallet: session?.walletAddress || '', // Use session
+        creator_wallet: session?.walletAddress || '',
         type: agentData.type,
         tier: agentData.tier,
         arena_type: agentData.arenaType,
-        interface_code: interfaceCode || undefined,
+        github_repo_url: githubRepo.url || undefined,
+        github_branch: githubRepo.branch,
+        github_entry_file: githubRepo.entryFile,
         socials,
       });
     
@@ -1158,9 +1057,6 @@ export default function CreateAgentPage() {
       setIsSubmitting(false);
     }
   };
-  
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 7));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   
   return (
     <div className="max-w-2xl mx-auto px-6 py-10">
@@ -1186,10 +1082,10 @@ export default function CreateAgentPage() {
       )}
       
       <div className="glass-panel p-8">
-        // In the main component, update step rendering
         {currentStep === 1 && (
           <Step1ConnectWallet onNext={() => setCurrentStep(2)} />
         )}
+        
         {currentStep === 2 && (
           <Step2AgentDetails
             data={agentData}
@@ -1198,6 +1094,7 @@ export default function CreateAgentPage() {
             onBack={() => setCurrentStep(1)}
           />
         )}
+        
         {currentStep === 3 && (
           <Step3TierSelection
             selectedTier={agentData.tier}
@@ -1206,16 +1103,18 @@ export default function CreateAgentPage() {
             onBack={() => setCurrentStep(2)}
           />
         )}
+        
         {currentStep === 4 && (
-          <Step4DecisionInterface
-            interfaceCode={interfaceCode}
-            onChange={setInterfaceCode}
+          <Step4GithubRepository
+            githubRepo={githubRepo}
+            onChange={setGithubRepo}
             onNext={() => setCurrentStep(5)}
             onBack={() => setCurrentStep(3)}
           />
         )}
+        
         {currentStep === 5 && (
-          <Step3RegisterWallets  // Renamed from original step 3
+          <Step5RegisterWallets
             wallets={wallets}
             onAddWallet={handleAddWallet}
             onRemoveWallet={handleRemoveWallet}
@@ -1223,21 +1122,23 @@ export default function CreateAgentPage() {
             onBack={() => setCurrentStep(4)}
           />
         )}
+        
         {currentStep === 6 && (
-          <Step6ReviewPay  // Updated review step
+          <Step6ReviewPay
             agentData={agentData}
             wallets={wallets}
-            interfaceCode={interfaceCode}
+            githubRepo={githubRepo}
             socials={socials}
             onSubmit={handleSubmit}
             onBack={() => setCurrentStep(5)}
             isSubmitting={isSubmitting}
           />
         )}
+        
         {currentStep === 7 && (
           <Step7Success agentId={createdAgentId} agentName={agentData.name} />
         )}
       </div>
     </div>
   );
-            }
+}
