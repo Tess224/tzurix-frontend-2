@@ -118,10 +118,10 @@ function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { icon: typeof CheckCircle2; class: string; label: string }> = {
     ready: { icon: CheckCircle2, class: 'text-emerald-400', label: 'Arena Ready' },
     pending_validation: { icon: Clock, class: 'text-amber-400', label: 'Pending Validation' },
-    needs_interface: { icon: AlertCircle, class: 'text-red-400', label: 'Needs Interface' },
+    needs_github: { icon: AlertCircle, class: 'text-red-400', label: 'Needs GitHub' },
   };
   
-  const config = configs[status] || configs.needs_interface;
+  const config = configs[status] || configs.needs_github;
   const Icon = config.icon;
   
   return (
