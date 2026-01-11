@@ -5,14 +5,14 @@ import Link from 'next/link';
 import {
   Bot, TrendingUp, TrendingDown, Users, DollarSign,
   Activity, RefreshCw, Settings, ArrowRight, Clock,
-  AlertCircle, CheckCircle2, XCircle, Upload, ChevronRight,
-  BarChart3, Code, Wallet, Plus
+  AlertCircle, CheckCircle2, XCircle, Github, ChevronRight,
+  BarChart3, Code, Wallet, Plus, ExternalLink, FileCode
 } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
-import { 
-  getCreatedAgents, 
+import {
+  getCreatedAgents,
   getAgentArenaResults,
-  setAgentGithub,
+  setAgentGithub, // Updated API import
   changeAgentTier,
   formatNumber,
   shortenAddress
@@ -61,8 +61,8 @@ function StatsCards({ agents }: { agents: CreatorAgent[] }) {
   const totalEarnings = agents.reduce((sum, a) => sum + (a.earnings_sol || 0), 0);
   const totalHolders = agents.reduce((sum, a) => sum + (a.holders || 0), 0);
   const totalVolume = agents.reduce((sum, a) => sum + (a.volume_24h || 0), 0);
-  const avgScore = agents.length > 0 
-    ? agents.reduce((sum, a) => sum + a.current_score, 0) / agents.length 
+  const avgScore = agents.length > 0
+    ? agents.reduce((sum, a) => sum + a.current_score, 0) / agents.length
     : 0;
 
   return (
@@ -118,12 +118,12 @@ function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { icon: typeof CheckCircle2; class: string; label: string }> = {
     ready: { icon: CheckCircle2, class: 'text-emerald-400', label: 'Arena Ready' },
     pending_validation: { icon: Clock, class: 'text-amber-400', label: 'Pending Validation' },
-    needs_github: { icon: AlertCircle, class: 'text-red-400', label: 'Needs GitHub' },
+    needs_github: { icon: AlertCircle, class: 'text-red-400', label: 'Needs GitHub' }, // Renamed from needs_interface
   };
-  
+
   const config = configs[status] || configs.needs_github;
   const Icon = config.icon;
-  
+
   return (
     <span className={`flex items-center gap-1 text-xs ${config.class}`}>
       <Icon size={12} />
@@ -135,17 +135,23 @@ function StatusBadge({ status }: { status: string }) {
 // ============================================================================
 // AGENT CARD
 // ============================================================================
-function AgentCard({ 
-  agent, 
-  onUploadInterface,
-  onUpgradeTier 
-}: { 
+function AgentCard({
+  agent,
+  onConnectGithub,
+  onUpgradeTier
+}: {
   agent: CreatorAgent;
-  onUploadInterface: (agentId: number) => void;
+  onConnectGithub: (agentId: number) => void;
   onUpgradeTier: (agentId: number) => void;
 }) {
   const scoreChange = agent.current_score - agent.previous_score;
   const isPositive = scoreChange >= 0;
+
+  // Determine display status based on github fields
+  let displayStatus = 'needs_github';
+  if (agent.github_validated) displayStatus = 'ready';
+  else if (agent.has_github) displayStatus = 'pending_validation';
+
 
   return (
     <div className="glass-panel p-5">
@@ -156,9 +162,9 @@ function AgentCard({
             <h3 className="font-semibold text-lg">{agent.name}</h3>
             <TierBadge tier={agent.tier} />
           </div>
-          <StatusBadge status={agent.arena_status} />
+          <StatusBadge status={displayStatus} />
         </div>
-        <Link 
+        <Link
           href={`/agent/${agent.id}`}
           className="text-slate-400 hover:text-cyan-400 transition-colors"
         >
@@ -208,19 +214,19 @@ function AgentCard({
       <div className="flex gap-2">
         {!agent.has_github && (
           <button
-            onClick={() => onUploadInterface(agent.id)}
-            className="flex-1 px-3 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 
+            onClick={() => onConnectGithub(agent.id)}
+            className="flex-1 px-3 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400
               rounded-lg text-sm font-medium hover:bg-cyan-500/30 transition-colors
               flex items-center justify-center gap-2"
           >
-            <Upload size={14} />
+            <Github size={14} />
             Connect GitHub
           </button>
         )}
         {agent.tier !== 'omega' && (
           <button
             onClick={() => onUpgradeTier(agent.id)}
-            className="flex-1 px-3 py-2 bg-purple-500/20 border border-purple-500/30 text-purple-400 
+            className="flex-1 px-3 py-2 bg-purple-500/20 border border-purple-500/30 text-purple-400
               rounded-lg text-sm font-medium hover:bg-purple-500/30 transition-colors
               flex items-center justify-center gap-2"
           >
@@ -230,7 +236,7 @@ function AgentCard({
         )}
         <Link
           href={`/agent/${agent.id}`}
-          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm 
+          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm
             hover:bg-white/10 transition-colors flex items-center justify-center"
         >
           <Settings size={14} />
@@ -304,9 +310,9 @@ function ArenaResultsTable({ results }: { results: ArenaResult[] }) {
 }
 
 // ============================================================================
-// UPLOAD INTERFACE MODAL
+// CONNECT GITHUB MODAL
 // ============================================================================
-function UploadInterfaceModal({
+function ConnectGithubModal({
   agentId,
   agentName,
   walletAddress,
@@ -320,52 +326,110 @@ function UploadInterfaceModal({
   onSuccess: () => void;
 }) {
   const [repoUrl, setRepoUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [branch, setBranch] = useState('main');
+  const [entryFile, setEntryFile] = useState('agent.py');
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleUpload = async () => {
-    if (!code.includes('def decide(')) {
-      setError('Code must contain a decide(market_data, portfolio) function');
+  const handleConnect = async () => {
+    // Basic validation
+    if (!repoUrl.includes('github.com')) {
+      setError('Please provide a valid GitHub repository URL');
       return;
     }
 
-    setUploading(true);
+    setConnecting(true);
     setError('');
 
-    const result = await setAgentGithub(agent.id, githubUrl, walletAddress);
+    // Call the new setAgentGithub API endpoint
+    const result = await setAgentGithub(
+      agentId,
+      repoUrl,
+      walletAddress,
+      branch,
+      entryFile
+    );
 
     if (result.success) {
       onSuccess();
       onClose();
     } else {
-      setError(result.error || 'Failed to upload interface');
+      setError(result.error || 'Failed to connect GitHub repository');
     }
-    setUploading(false);
+    setConnecting(false);
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-[#0B1220] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+      <div className="relative bg-[#0B1220] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h2 className="text-xl font-bold">Connect GitHub for {agentName}</h2>
           <p className="text-sm text-slate-400 mt-1">
-            Paste your decision interface code below
+            Link your repository to deploy your agent's logic
           </p>
         </div>
-        
-        <div className="p-6">
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full h-64 bg-[#0a0f1a] border border-white/10 rounded-xl p-4 
-              font-mono text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
-            placeholder="def decide(market_data: dict, portfolio: dict) -> dict:
-    # Your decision logic here
-    return {'action': 'hold', 'reason': 'Example'}"
-          />
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Repository URL</label>
+            <div className="relative">
+              <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg pl-10 pr-4 py-2.5
+                  focus:outline-none focus:border-cyan-500/50"
+                placeholder="https://github.com/username/repo"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Branch</label>
+              <div className="relative">
+                <Code className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg pl-10 pr-4 py-2.5
+                    focus:outline-none focus:border-cyan-500/50"
+                  placeholder="main"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Entry File</label>
+              <div className="relative">
+                <FileCode className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="text"
+                  value={entryFile}
+                  onChange={(e) => setEntryFile(e.target.value)}
+                  className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg pl-10 pr-4 py-2.5
+                    focus:outline-none focus:border-cyan-500/50"
+                  placeholder="agent.py"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-lg p-3 text-xs text-cyan-400/80">
+            <p className="flex items-start gap-2">
+              <AlertCircle size={14} className="mt-0.5 shrink-0" />
+              <span>
+                Your repository must contain the specified entry file with a valid <code>decide()</code> function.
+                The system will automatically validate your code upon connection.
+              </span>
+            </p>
+          </div>
+
           {error && (
-            <p className="text-red-400 text-sm mt-2 flex items-center gap-2">
+            <p className="text-red-400 text-sm flex items-center gap-2">
               <AlertCircle size={14} />
               {error}
             </p>
@@ -377,19 +441,19 @@ function UploadInterfaceModal({
             Cancel
           </button>
           <button
-            onClick={handleUpload}
-            disabled={uploading || !code}
+            onClick={handleConnect}
+            disabled={connecting || !repoUrl}
             className="btn-primary inline-flex items-center gap-2"
           >
-            {uploading ? (
+            {connecting ? (
               <>
                 <RefreshCw size={16} className="animate-spin" />
-                Uploading...
+                Connecting...
               </>
             ) : (
               <>
-                <Upload size={16} />
-                Upload
+                <Github size={16} />
+                Connect
               </>
             )}
           </button>
@@ -424,7 +488,6 @@ function UpgradeTierModal({
   const handleUpgrade = async () => {
     setUpgrading(true);
     setError('');
-
     const result = await changeAgentTier(agent.id, nextTier, walletAddress);
 
     if (result.success) {
@@ -443,7 +506,7 @@ function UpgradeTierModal({
         <div className="p-6 border-b border-white/10">
           <h2 className="text-xl font-bold">Upgrade to {nextTierConfig.name}</h2>
         </div>
-        
+
         <div className="p-6">
           <div className="flex items-center justify-center gap-4 mb-6">
             <div className="text-center">
@@ -527,24 +590,20 @@ function UpgradeTierModal({
 // ============================================================================
 export default function DashboardPage() {
   const { session, isConnected, connect, isLoading: sessionLoading } = useSession();
-  
   const [agents, setAgents] = useState<CreatorAgent[]>([]);
   const [arenaResults, setArenaResults] = useState<ArenaResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
   // Modal state
-  const [uploadModalAgent, setUploadModalAgent] = useState<number | null>(null);
+  const [githubModalAgent, setGithubModalAgent] = useState<number | null>(null);
   const [upgradeModalAgent, setUpgradeModalAgent] = useState<CreatorAgent | null>(null);
 
   // Fetch data
   const fetchData = async () => {
     if (!session?.walletAddress) return;
-    
     try {
       const agentsData = await getCreatedAgents(session.walletAddress);
       setAgents(agentsData);
-
       // Fetch arena results for first agent (or all)
       if (agentsData.length > 0) {
         const results = await getAgentArenaResults(agentsData[0].id, 10);
@@ -643,7 +702,7 @@ export default function DashboardPage() {
                 <AgentCard
                   key={agent.id}
                   agent={agent}
-                  onUploadInterface={setUploadModalAgent}
+                  onConnectGithub={setGithubModalAgent}
                   onUpgradeTier={() => setUpgradeModalAgent(agent)}
                 />
               ))}
@@ -659,12 +718,12 @@ export default function DashboardPage() {
       )}
 
       {/* Modals */}
-      {uploadModalAgent && (
-        <UploadInterfaceModal
-          agentId={uploadModalAgent}
-          agentName={agents.find(a => a.id === uploadModalAgent)?.name || 'Agent'}
+      {githubModalAgent && (
+        <ConnectGithubModal
+          agentId={githubModalAgent}
+          agentName={agents.find(a => a.id === githubModalAgent)?.name || 'Agent'}
           walletAddress={session?.walletAddress || ''}
-          onClose={() => setUploadModalAgent(null)}
+          onClose={() => setGithubModalAgent(null)}
           onSuccess={fetchData}
         />
       )}
@@ -679,4 +738,4 @@ export default function DashboardPage() {
       )}
     </div>
   );
-                    }
+}
