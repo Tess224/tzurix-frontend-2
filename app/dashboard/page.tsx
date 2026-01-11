@@ -348,7 +348,7 @@ function UploadInterfaceModal({
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
       <div className="relative bg-[#0B1220] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold">Upload Interface for {agentName}</h2>
+          <h2 className="text-xl font-bold">Connect GitHub for {agentName}</h2>
           <p className="text-sm text-slate-400 mt-1">
             Paste your decision interface code below
           </p>
