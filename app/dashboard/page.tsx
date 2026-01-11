@@ -332,7 +332,7 @@ function UploadInterfaceModal({
     setUploading(true);
     setError('');
 
-    const result = await uploadAgentInterfade, walletAddress);
+    const result = await setAgentGithub(agent.id, githubUrl, walletAddress);
 
     if (result.success) {
       onSuccess();
