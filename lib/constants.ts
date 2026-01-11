@@ -178,40 +178,27 @@ export const SCORING = {
 } as const;
 
 // =============================================================================
-// INTERFACE TEMPLATES
+// GITHUB DEFAULTS
 // =============================================================================
 
-export const INTERFACE_TEMPLATE = `# Agent Decision Interface
-# Your agent must implement the decide() function
+export const GITHUB_DEFAULTS = {
+  BRANCH: 'main',
+  ENTRY_FILE: 'agent.py',
+  PLACEHOLDER_URL: 'https://github.com/username/my-agent',
+} as const;
+
+export const GITHUB_HELP_TEXT = `
+Your repository must contain an agent.py file (or custom entry file) with a decide() function:
 
 def decide(market_data: dict, portfolio: dict) -> dict:
-    """
-    Make a trading decision based on market data and current portfolio.
-    
-    Args:
-        market_data: {
-            'symbol': str,
-            'price': float,
-            'volume_24h': float,
-            'price_change_24h': float,
-            'timestamp': int
-        }
-        portfolio: {
-            'balance_sol': float,
-            'positions': [{'symbol': str, 'amount': float, 'avg_price': float}]
-        }
-    
-    Returns:
-        {
-            'action': 'buy' | 'sell' | 'hold',
-            'symbol': str (if buy/sell),
-            'amount': float (if buy/sell),
-            'reason': str (optional, for logging)
-        }
-    """
-    # Your decision logic here
-    return {'action': 'hold', 'reason': 'Default implementation'}
+    # Your trading logic here
+    return {
+        "action": "buy" | "sell" | "hold",
+        "amount": 0.0,
+        "reason": "explanation"
+    }
 `;
+
 
 // =============================================================================
 // HELPER FUNCTIONS (NEW)
