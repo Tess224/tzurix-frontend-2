@@ -1093,7 +1093,17 @@ export default function CreateAgentPage() {
     arenaType: 'trading' as ArenaType,
     keywords: [] as string[],
   });
-  const [interfaceCode, setInterfaceCode] = useState('');
+  const [githubRepo, setGithubRepo] = useState({
+    url: '',
+    branch: 'main',
+    entryFile: 'agent.py',
+  });
+  const [githubValidation, setGithubValidation] = useState<{
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const [wallets, setWallets] = useState<string[]>([]);
   const [socials, setSocials] = useState({
     twitter: '',
