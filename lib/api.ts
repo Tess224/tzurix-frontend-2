@@ -68,6 +68,14 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 
+export interface GitHubValidation {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  line_count: number;
+  commit?: string;
+}
+
 // =============================================================================
 // DASHBOARD APIs (NEW)
 // =============================================================================
@@ -124,21 +132,25 @@ export async function getAgentArenaResults(
 }
 
 /**
- * Upload decision interface for an agent
+ * Set GitHub repository for an agent
  */
-export async function uploadAgentInterface(
+export async function setAgentGithub(
   agentId: number,
-  interfaceCode: string,
-  creatorWallet: string
-): Promise<{ success: boolean; error?: string; version?: number }> {
+  githubRepoUrl: string,
+  creatorWallet: string,
+  branch: string = 'main',
+  entryFile: string = 'agent.py'
+): Promise<{ success: boolean; error?: string; validation?: GitHubValidation }> {
   const response = await fetchApi<{ 
     success: boolean; 
-    interface_version: number;
+    validation: GitHubValidation;
     error?: string;
-  }>(`/api/agents/${agentId}/interface`, {
+  }>(`/api/agents/${agentId}/github`, {
     method: 'POST',
     body: JSON.stringify({
-      interface_code: interfaceCode,
+      github_repo_url: githubRepoUrl,
+      github_branch: branch,
+      github_entry_file: entryFile,
       creator_wallet: creatorWallet,
     }),
   });
@@ -146,11 +158,53 @@ export async function uploadAgentInterface(
   if (response.success && response.data) {
     return { 
       success: true, 
-      version: response.data.interface_version 
+      validation: response.data.validation 
     };
   }
   return { success: false, error: response.error || response.data?.error };
 }
+
+/**
+ * Validate GitHub repository for an agent
+ */
+export async function validateAgentGithub(
+  agentId: number
+): Promise<{ success: boolean; error?: string; validation?: GitHubValidation }> {
+  const response = await fetchApi<{ 
+    success: boolean; 
+    validation: GitHubValidation;
+    error?: string;
+  }>(`/api/agents/${agentId}/github/validate`);
+  
+  if (response.success && response.data) {
+    return { success: true, validation: response.data.validation };
+  }
+  return { success: false, error: response.error || response.data?.error };
+}
+
+/**
+ * Preview GitHub code for an agent
+ */
+export async function previewAgentGithub(
+  agentId: number
+): Promise<{ success: boolean; error?: string; preview?: string; totalLines?: number }> {
+  const response = await fetchApi<{ 
+    success: boolean; 
+    preview: string;
+    total_lines: number;
+    error?: string;
+  }>(`/api/agents/${agentId}/github/preview`);
+  
+  if (response.success && response.data) {
+    return { 
+      success: true, 
+      preview: response.data.preview,
+      totalLines: response.data.total_lines
+    };
+  }
+  return { success: false, error: response.error || response.data?.error };
+}
+  
 
 // =============================================================================
 // TIER APIs (NEW)
@@ -246,8 +300,10 @@ export interface CreateAgentParams {
   tier?: TierType;
   arena_type?: ArenaType;
   keywords?: string[];
-  interface_code?: string;
-  socials?: { twitter: string; github: string; website: string };
+  github_repo_url?: string;
+  github_branch?: string;
+  github_entry_file?: string;
+  socials?: { twitter: string; website: string };
 }
 
 export interface CreateAgentResult {
@@ -273,7 +329,9 @@ export async function createAgent(params: CreateAgentParams): Promise<CreateAgen
       tier: params.tier || 'alpha',
       arena_type: params.arena_type || 'trading',
       keywords: params.keywords || [],
-      interface_code: params.interface_code,
+      github_repo_url: params.github_repo_url,
+      github_branch: params.github_branch || 'main',
+      github_entry_file: params.github_entry_file || 'agent.py',
     }),
   });
   
