@@ -12,7 +12,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { 
   getCreatedAgents, 
   getAgentArenaResults,
-  uploadAgentInterface,
+  setAgentGithub,
   changeAgentTier,
   formatNumber,
   shortenAddress
