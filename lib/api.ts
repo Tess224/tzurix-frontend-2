@@ -14,6 +14,17 @@ import { getSessionId, getWalletAddress } from './session';
 import type { DashboardData, ArenaResult, CreatorAgent, ArenaStatus, TierInfo, TierType, ArenaType } from '@/types';
 
 // =============================================================================
+// LOCAL TYPES
+// =============================================================================
+
+export interface GitHubValidation {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  line_count: number;
+  commit?: string;
+}
+// =============================================================================
 // CONFIGURATION
 // =============================================================================
 
@@ -65,15 +76,6 @@ function getAuthHeaders(): Record<string, string> {
   }
   
   return headers;
-}
-
-
-export interface GitHubValidation {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  line_count: number;
-  commit?: string;
 }
 
 // =============================================================================
