@@ -206,7 +206,7 @@ function AgentCard({
 
       {/* Actions */}
       <div className="flex gap-2">
-        {!agent.has_interface && (
+        {!agent.has_github && (
           <button
             onClick={() => onUploadInterface(agent.id)}
             className="flex-1 px-3 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 
@@ -214,7 +214,7 @@ function AgentCard({
               flex items-center justify-center gap-2"
           >
             <Upload size={14} />
-            Upload Interface
+            Connect GitHub
           </button>
         )}
         {agent.tier !== 'omega' && (
