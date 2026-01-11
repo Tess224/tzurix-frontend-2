@@ -319,7 +319,7 @@ function UploadInterfaceModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [code, setCode] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
@@ -332,7 +332,7 @@ function UploadInterfaceModal({
     setUploading(true);
     setError('');
 
-    const result = await uploadAgentInterface(agentId, code, walletAddress);
+    const result = await uploadAgentInterfade, walletAddress);
 
     if (result.success) {
       onSuccess();
