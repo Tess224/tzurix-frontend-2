@@ -66,8 +66,12 @@ export interface AgentStock {
   
   // NEW: Arena fields
   arena_type: ArenaType;
-  has_interface: boolean;
-  interface_validated: boolean;
+  has_github: boolean;
+  github_validated: boolean;
+  github_repo_url?: string;
+  github_branch?: string;
+  github_entry_file?: string;
+  github_last_commit?: string;
   keywords?: string[];
   
   // NEW: UPI breakdown (for utility/coding)
@@ -341,10 +345,13 @@ export interface ArenaStatus {
     autonomy: number;
   };
   last_arena_run: string | null;
-  has_interface: boolean;
-  interface_validated: boolean;
-  interface_version: number;
-  arena_status: 'ready' | 'pending_validation' | 'needs_interface';
+  has_github: boolean;
+    github_validated: boolean;
+    github_repo_url?: string;
+    github_branch?: string;
+    github_entry_file?: string;
+    github_last_commit?: string;
+    arena_status: 'ready' | 'pending_validation' | 'needs_github';
   message: string;
 }
 
@@ -362,9 +369,10 @@ export interface CreatorAgent {
   current_score: number;
   previous_score: number;
   score_ceiling: number;
-  has_interface: boolean;
-  interface_validated: boolean;
-  arena_status: string;
+  has_github: boolean;
+    github_validated: boolean;
+    github_repo_url?: string;
+    arena_status: string;
   last_arena_run: string | null;
   holders: number;
   volume_24h: number;
