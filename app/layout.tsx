@@ -25,7 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         
         <Header />
-        <main className="relative z-10">{children}</main>
+        <main className="relative z-10 bg-grid">
+  {children}
+</main>
         <Footer />
       </SessionProvider>
       </body>
