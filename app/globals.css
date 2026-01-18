@@ -44,14 +44,14 @@
 
 @layer utilities {
   .bg-grid {
-    position: fixed;    /* key change */
-    inset: 0;           /* cover full viewport */
-    z-index: -20;       /* behind everything */
-    pointer-events: none; /* grid doesn’t block clicks */
-    
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+
     background-image:
       linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 80px 80px; /* or whatever size you want */
+    background-size: 80px 80px; /* double original size */
   }
 }
