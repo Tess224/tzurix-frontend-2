@@ -16,20 +16,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white`}>
+      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white relative`}>
   <SessionProvider>
-
-    {/* Fixed grid layer */}
-    <div className="bg-grid" />
-
-    <Header />
-    <main className="relative z-10">
-      {children}
-    </main>
-    <Footer />
-
+    {/* This is the ONLY place the grid should be defined */}
+    <div className="bg-grid-pattern fixed inset-0 z-0 pointer-events-none" />
+    
+    <div className="relative z-10">
+      <Header />
+      <main>{children}</main>
+      <Footer />
+    </div>
   </SessionProvider>
 </body>
+
     </html>
   );
 }
