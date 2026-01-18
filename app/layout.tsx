@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white bg-grid`}>
+      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white bg-grid`}> 
         <SessionProvider>
         {/* Background Effects */}
         <div className="fixed inset-0 pointer-events-none -z-10">
