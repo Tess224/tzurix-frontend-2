@@ -16,21 +16,25 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white bg-grid`}> 
-        <SessionProvider>
-        {/* Background Effects */}
-        <div className="fixed inset-0 pointer-events-none -z-10">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-blue-900/20 via-transparent to-transparent blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-gradient-radial from-cyan-900/10 via-transparent to-transparent blur-3xl" />
-        </div>
-        
-        <Header />
-        <main className="relative z-10 bg-grid bg-clip-padding px-6">
-  {children}
-</main>
-        <Footer />
-      </SessionProvider>
-      </body>
+      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white`}>
+  <SessionProvider>
+
+    {/* Background Grid and Glow */}
+    <div className="fixed inset-0 -z-10">
+      {/* Grid */}
+      <div className="absolute inset-0 bg-grid" />
+
+      {/* Radial Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-blue-900/20 via-transparent to-transparent blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-gradient-radial from-cyan-900/10 via-transparent to-transparent blur-3xl" />
+    </div>
+
+    <Header />
+    <main className="relative z-10">{children}</main>
+    <Footer />
+
+  </SessionProvider>
+</body>
     </html>
   );
 }
