@@ -16,19 +16,26 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[#02060D] text-white relative`}>
-  <SessionProvider>
-    {/* This is the ONLY place the grid should be defined */}
-    <div className="bg-grid-pattern fixed inset-0 z-0 pointer-events-none" />
-    
-    <div className="relative z-10">
-      <Header />
-      <main>{children}</main>
-      <Footer />
-    </div>
-  </SessionProvider>
-</body>
+      <body className={`${inter.className} bg-[#02060D] text-white antialiased`}>
+        <SessionProvider>
+          
+          {/* 1. The Fixed Grid Layer */}
+          {/* We use z-[-1] to force it behind everything else */}
+          <div className="bg-grid-pattern fixed inset-0 z-[-1] pointer-events-none" />
 
+          {/* 2. The Content Layer */}
+          {/* This relative wrapper ensures children don't inherit the grid logic */}
+          <div className="relative flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </div>
+
+        </SessionProvider>
+      </body>
     </html>
   );
 }
+
