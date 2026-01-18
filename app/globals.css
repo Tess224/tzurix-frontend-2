@@ -47,6 +47,6 @@
     background-image:
       linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 8vw 8vw; /* scales with viewport */
+    background-size: 80px 80px; /* doubled from 40px */
   }
 }
