@@ -44,12 +44,22 @@
 
 /* app/globals.css */
 @layer utilities {
-  .bg-grid-pattern {
+  .bg-grid-fixed {
+    position: fixed;
+    inset: 0;
+    z-index: -1; /* Keep it strictly behind everything */
+    pointer-events: none;
+  }
+
+  .bg-grid-fixed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
     background-image:
       linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
     background-size: 80px 80px;
-    /* Remove 'position: fixed' from here if you are applying it via Tailwind classes */
-    /* This ensures the grid itself doesn't move relative to its container */
+    /* This ensures the grid itself never scrolls even if the parent div does */
+    background-attachment: fixed; 
   }
 }
